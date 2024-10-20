@@ -9,6 +9,6 @@ export class Token {
     @Column({unique: true})
     token: string;
 
-    @OneToOne(() => User)
+    @OneToOne(() => User, (user) => user.token)
     user: User;
 }

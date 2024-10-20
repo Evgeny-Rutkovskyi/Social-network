@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { EmailDto, UserNameDto } from './dto/create-user.dto';
+import { EmailLoginDto, newEmailDto, newUserNameDto, UserNameLoginDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcryptjs'
 import { JwtService } from '@nestjs/jwt';
 import { PayloadTokenDto } from './dto/payload-token.dto';
@@ -41,23 +41,25 @@ export class AuthService {
         }
     }
 
-    async login(userDto: EmailDto | UserNameDto){
+    async login(userDto: EmailLoginDto | UserNameLoginDto){
         try {
-            let user: any;
+            let user: User;
             if(userDto.email){
-                user = await this.userRepository.find({where: {email: userDto.email}});
+                user = await this.userRepository.findOne({where: {email: userDto.email}, relations: ['token']});
             }else if(userDto.userName){
-                user = await this.userRepository.find({where: {user_name: userDto.userName}});
+                user = await this.userRepository.findOne({where: {user_name: userDto.userName}, relations: ['token']});
             }
-            if(!user) throw new NotFoundException(`Not found user, maybe
+            if(!user){
+                throw new NotFoundException(`Not found user, maybe
                 ${(userDto.email) ? userDto.email : userDto.userName} is not correct`);
-            const isPassword = await bcrypt.compare(user.password, userDto.password);
+            }
+            const isPassword = await bcrypt.compare(userDto.password, user.password);
             if(!isPassword) throw new BadRequestException('Password is not correct');
-            const token = await this.generateToken(user);
-            user.token = token;
-            const saveToken = this.tokenRepository.create({token});
+            const payload = {userId: user.id, email: user.email, userName: user.user_name};
+            const token = await this.generateToken(payload);
+            const saveToken = this.tokenRepository.create({...user.token, token, user});
+            user.token = saveToken;
             await this.userRepository.save(user);
-            await this.tokenRepository.save(saveToken);
             return token;
         } catch (e) {
             console.log(e);
@@ -65,7 +67,7 @@ export class AuthService {
         }
     }
 
-    async updateEmail(userData: EmailDto){
+    async updateEmail(userData: newEmailDto){
         const user = await this.userRepository.findOne({where: {email: userData.email}});
         if(!user) throw new NotFoundException('User is not found, email is not correct');
         user.email = userData.newEmail;
@@ -76,7 +78,7 @@ export class AuthService {
     async updatePassword(userData: changePassword){
         const user = await this.userRepository.findOne({where: {email: userData.email}});
         if(!user) throw new NotFoundException('User is not found, email is not correct');
-        const isPassword = await bcrypt.compare(user.password, userData.password);
+        const isPassword = await bcrypt.compare(userData.password, user.password);
         if(!isPassword) throw new BadRequestException('Passwords is not match');
         const hashPassword = await bcrypt.hash(userData.newPassword, 7);
         user.password = hashPassword;
@@ -84,7 +86,7 @@ export class AuthService {
         return user;
     }
 
-    async nameChange(userData: UserNameDto){
+    async nameChange(userData: newUserNameDto){
         const user = await this.userRepository.findOne({where: {user_name: userData.userName}});
         if(!user) throw new NotFoundException('User is not found');
         user.user_name = userData.newUserName;
@@ -93,11 +95,12 @@ export class AuthService {
     }
 
     async deletedAccount(userDto: DeleteAccountDto){
-        const user = await this.userRepository.findOne({where: {user_name: userDto.userName}});
+        const user = await this.userRepository.findOne({where: {user_name: userDto.userName}, relations: ['token']});
         if(!user) throw new NotFoundException('Username is not correct, user is not found');
         if(user.email != userDto.email) throw new BadRequestException('Email is not correct');
-        const isPassword = await bcrypt.compare(user.password, userDto.password);
+        const isPassword = await bcrypt.compare(userDto.password, user.password);
         if(!isPassword) throw new BadRequestException('Passwords do not match');
+        await this.tokenRepository.delete(user.token.id);
         await this.userRepository.remove(user);
         return user;
     }

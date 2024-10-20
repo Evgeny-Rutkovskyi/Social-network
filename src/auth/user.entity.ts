@@ -25,7 +25,7 @@ export class User {
     @Column()
     private: boolean;
 
-    @OneToOne(() => Token, (token) => token.user)
+    @OneToOne(() => Token, (token) => token.user, {cascade: true, onDelete: 'CASCADE'})
     @JoinColumn()
     token: Token;
 }

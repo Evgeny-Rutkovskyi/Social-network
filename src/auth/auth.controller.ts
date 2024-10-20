@@ -1,6 +1,6 @@
-import { Body, Controller, Patch, Post, Res, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Patch, Post, Res, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { EmailDto, UserNameDto } from './dto/create-user.dto';
+import { EmailLoginDto, newEmailDto, newUserNameDto, UserNameLoginDto } from './dto/create-user.dto';
 import { Response } from 'express';
 import { RegistrationUserDto } from './dto/registration.dto';
 import { DtoUserInterceptor } from './interceptors/dto.interceptor';
@@ -20,7 +20,7 @@ export class AuthController {
     }
 
     @Post('/login/emailOrName')
-    async loginWithEmailOrUserName(@Body() userData: EmailDto | UserNameDto, 
+    async loginWithEmailOrUserName(@Body() userData: EmailLoginDto | UserNameLoginDto, 
     @Res({passthrough: true}) res: Response){
         const token = await this.authService.login(userData);
         res.cookie('jwt', token, {httpOnly: true, secure: true});
@@ -31,7 +31,7 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
     @Patch('/update/email')
-    async updateEmail(@Body() userData: EmailDto){
+    async updateEmail(@Body() userData: newEmailDto){
         return await this.authService.updateEmail(userData);
     }
 
@@ -45,14 +45,14 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
     @Patch('/update/name')
-    async nameChange(@Body() userData: UserNameDto){
+    async nameChange(@Body() userData: newUserNameDto){
         return await this.authService.nameChange(userData);
     }
 
     
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
-    @Post('/delete')
+    @Delete('/delete')
     async deleteAccount(@Body() userData: DeleteAccountDto, @Res({passthrough: true}) res: Response){
         const isDeleted = await this.authService.deletedAccount(userData);
         res.clearCookie('jwt');
