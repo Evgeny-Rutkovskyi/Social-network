@@ -7,6 +7,8 @@ import { DtoUserInterceptor } from './interceptors/dto.interceptor';
 import { changePassword, DeleteAccountDto } from './dto/delete-update.dto';
 import { JwtAuthGuard } from './jwt.guard';
 import { validateExceptionFactory } from './validate-exception';
+import { UserField } from 'src/custom-decorator/user.decorator';
+import { ChangeSettingsDto } from './dto/change-settings.dto';
 
 @UsePipes(new ValidationPipe({exceptionFactory: validateExceptionFactory}))
 @Controller('auth')
@@ -27,7 +29,12 @@ export class AuthController {
         return token;
     }
 
-    
+    @UseGuards(JwtAuthGuard)
+    @Post('/change/settings')
+    async changeSettings(@UserField('userId') userId: number, @Body() settingChange: ChangeSettingsDto){
+        return await this.authService.changeSettingsAccount(userId, settingChange);
+    }
+
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
     @Patch('/update/email')
@@ -41,7 +48,7 @@ export class AuthController {
     async updatePassword(@Body() userData: changePassword){
         return await this.authService.updatePassword(userData);
     }
-
+    
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
     @Patch('/update/name')
@@ -49,7 +56,6 @@ export class AuthController {
         return await this.authService.nameChange(userData);
     }
 
-    
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
     @Delete('/delete')

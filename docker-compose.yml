@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    restart: always
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+      - rabbitmq
+    
+  db:
+    image: postgres
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: instagram
+    ports:
+      - 5432:5432
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    hostname: rabbitmq
+    restart: always
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=rmuser
+      - RABBITMQ_DEFAULT_PASS=rmpass
+    
