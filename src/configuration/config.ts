@@ -9,4 +9,8 @@ export default () => ({
     aws_region: process.env.AWS_REGION,
     aws_access_key_id: process.env.AWS_ACCESS_KEY_ID,
     aws_secret_access_key: process.env.AWS_SECRET_ACCESS_KEY,
+    first_admin_email: process.env.FIRST_ADMIN_EMAIL,
+    first_admin_password: process.env.FIRST_ADMIN_PASSWORD,
+    first_admin_private: process.env.FIRST_ADMIN_PRIVATE,
+    first_admin_name: process.env.FIRST_ADMIN_NAME,
 })

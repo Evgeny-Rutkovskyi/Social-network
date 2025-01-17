@@ -8,6 +8,9 @@ import { User } from '../entities/user.entity';
 import { Token } from '../entities/token.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { Settings } from 'src/entities/settings.entity';
+import { Profile } from 'src/entities/profile.entity';
+import { Stories } from 'src/entities/stories.entity';
+import { UserToProfile } from 'src/entities/userToProfile.entity';
 
 @Module({
   imports: [JwtModule.registerAsync({
@@ -16,7 +19,7 @@ import { Settings } from 'src/entities/settings.entity';
       secret: configService.get<string>('jwt_secret'),
       signOptions: {expiresIn: '30d'}
     })
-  }), TypeOrmModule.forFeature([User, Token, Settings])],
+  }), TypeOrmModule.forFeature([User, Token, Settings, Profile, Stories, UserToProfile])],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService]

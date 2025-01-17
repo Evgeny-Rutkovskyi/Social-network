@@ -6,6 +6,8 @@ import { Repository } from 'typeorm';
 import { SettingsStoriesDto } from '../dto/settingsStories.dto';
 import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
 import { UserStoriesLikes } from 'src/entities/userStoriesLikes.entity';
+import { Cron } from '@nestjs/schedule';
+import { StoriesView } from 'src/entities/storiesView.entity';
 
 
 @Injectable()
@@ -13,6 +15,7 @@ export class ContentUserService {
     constructor(@InjectRepository(User) private readonly userRepository: Repository<User>,
                 @InjectRepository(Stories) private readonly storiesRepository: Repository<Stories>,
                 @InjectRepository(UserStoriesLikes) private readonly userStoriesLikesRepository: Repository<UserStoriesLikes>,
+                @InjectRepository(StoriesView) private readonly storiesViewRepository: Repository<StoriesView>,
                 private readonly rabbitService: RabbitMQService){}
 
     async createStories(userId: number, content: Express.Multer.File, settingsStories: SettingsStoriesDto){
@@ -40,18 +43,77 @@ export class ContentUserService {
         try {
             const stories = await this.storiesRepository.findOne({where: {id: idStories}});
             if(!stories) throw new NotFoundException('Not found stories');
-            await this.rabbitService.transitionStoriesInArchive(idUser, stories);
-            const deleteStories = await this.storiesRepository.delete(stories);
-            return deleteStories;
+            await this.rabbitService.archiveOrDeleteStories(idUser, stories);
+            return 'Stories was deleted';
         } catch (err){
             console.log('Something wrong with deleteStoriesById');
         }
     }
 
-    async getAllStoriesByUserId(idUser: number){
-        const user = await this.userRepository.findOne({where: {id: idUser}, relations: ['stories']});
-        if(!user) throw new NotFoundException('Not found user');
-        return user.stories;
+    async deleteArchiveStories(idStories: number){
+        try {
+            await this.storiesRepository
+                .createQueryBuilder('stories')
+                .delete()
+                .where('id = :idStories', {idStories})
+                .execute()
+            return 'Archive stories was deleted';
+        } catch (error) {
+            console.log('Something wrong with delete Archive Stories');
+        }
+    }
+
+    async deleteAllArchiveStories(userId: number){
+        try {
+            await this.storiesRepository
+                .createQueryBuilder('stories')
+                .relation('user')
+                .of(userId)
+                .delete()
+                .where('is_deleted = :isDeleted', {isDeleted: true})
+                .execute()
+            return 'All archive stories was deleted'
+        } catch (error) {
+            console.log('Something wrong with delete ALL Archive Stories', error);
+        }
+    }
+
+    async recreateStories(idUser:number, idStories: number, settingStories: SettingsStoriesDto){
+        try {
+            await this.storiesRepository
+                .createQueryBuilder('stories')
+                .update()
+                .set({is_deleted: false, only_friend: settingStories.only_friend})
+                .where('id = :idStories', {idStories})
+                .execute();
+            const msg = {
+                userId: idUser,
+                storiesId: idStories
+            };
+            await this.rabbitService.sendMessage(msg);  
+        } catch (error) {
+            console.log('Something wrong with recreateStories', error);
+        }
+    }
+
+
+    async getStoriesById(userId: number, idStories: number){
+        try {
+            const stories = await this.storiesRepository.findOne({where: {id: idStories}, relations: ['view_user']});
+            if(!stories) throw new NotFoundException('Stories not found');
+            const user = await this.userRepository.findOne({where: {id: userId}});
+            await this.storiesViewRepository
+                .createQueryBuilder('storiesview')
+                .insert()
+                .into(StoriesView)
+                .values({user, stories})
+                .orIgnore()
+                .execute();
+            return stories;
+        } catch (error) {
+            console.log('Something wrong with getStoriesById', error);
+        }
+        
     }
 
     async likeStoriesById(userId: number, idStories: number){

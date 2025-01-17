@@ -15,10 +15,19 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { Settings } from './entities/settings.entity';
 import { UserStoriesLikes } from './entities/userStoriesLikes.entity';
-import { ArchiveStories } from './entities/archive-stories.entity';
+import { ProfileLikes } from './entities/profileLikes.entity';
+import { Profile } from './entities/profile.entity';
+import { CommentsProfile } from './entities/commentsProfile.entity';
+import { ProfileUserModule } from './content-user/profile-user/profile-user.module';
+import { UserToProfile } from './entities/userToProfile.entity';
+import { StoriesView } from './entities/storiesView.entity';
+import { AdminModule } from './admin/admin.module';
+import { CronModule } from './cron/cron.module';
+import { FollowsAndBlock } from './entities/followsAndBlock.entity';
 
 @Module({
-  imports: [UserModule, AuthModule, ContentUserModule, RoleModule, RabbitMQModule, ConfigModule.forRoot({
+  imports: [UserModule, AuthModule, ContentUserModule, RoleModule, 
+    ProfileUserModule, RabbitMQModule, ConfigModule.forRoot({
     load: [config],
     isGlobal: true
   }), TypeOrmModule.forRootAsync({
@@ -30,10 +39,11 @@ import { ArchiveStories } from './entities/archive-stories.entity';
       username: configService.get('username_db'),
       password: configService.get('password_db'),
       database: configService.get('name_db'),
-      entities: [Token, User, Stories, Settings, UserStoriesLikes, ArchiveStories],
+      entities: [Token, User, Stories, Settings, UserStoriesLikes,
+        ProfileLikes, Profile, CommentsProfile, UserToProfile, StoriesView, FollowsAndBlock],
       synchronize: true, // only dev
   }),
-  }), S3Module, ScheduleModule.forRoot()],
+  }), S3Module, ScheduleModule.forRoot(), AdminModule, CronModule],
   controllers: [],
   providers: [S3Service],
 })

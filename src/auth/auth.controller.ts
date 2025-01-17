@@ -4,8 +4,8 @@ import { EmailLoginDto, newEmailDto, newUserNameDto, UserNameLoginDto } from './
 import { Response } from 'express';
 import { RegistrationUserDto } from './dto/registration.dto';
 import { DtoUserInterceptor } from './interceptors/dto.interceptor';
-import { changePassword, DeleteAccountDto } from './dto/delete-update.dto';
-import { JwtAuthGuard } from './jwt.guard';
+import { changePassword } from './dto/delete-update.dto';
+import { JwtAuthGuard } from '../guards/jwt.guard';
 import { validateExceptionFactory } from './validate-exception';
 import { UserField } from 'src/custom-decorator/user.decorator';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
@@ -21,10 +21,18 @@ export class AuthController {
         return await this.authService.registration(userData);
     }
 
-    @Post('/login/emailOrName')
-    async loginWithEmailOrUserName(@Body() userData: EmailLoginDto | UserNameLoginDto, 
+    @Post('/login/email')
+    async loginWithEmail(@Body() userData: EmailLoginDto, 
     @Res({passthrough: true}) res: Response){
-        const token = await this.authService.login(userData);
+        const token = await this.authService.loginWithEmail(userData);
+        res.cookie('jwt', token, {httpOnly: true, secure: true});
+        return token;
+    }
+
+    @Post('/login/name')
+    async loginWithUserName(@Body() userData: UserNameLoginDto, 
+    @Res({passthrough: true}) res: Response){
+        const token = await this.authService.loginWithUserName(userData);
         res.cookie('jwt', token, {httpOnly: true, secure: true});
         return token;
     }
@@ -59,8 +67,8 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(DtoUserInterceptor)
     @Delete('/delete')
-    async deleteAccount(@Body() userData: DeleteAccountDto, @Res({passthrough: true}) res: Response){
-        const isDeleted = await this.authService.deletedAccount(userData);
+    async deleteAccount(@UserField('userId') userId: number, @Res({passthrough: true}) res: Response){
+        const isDeleted = await this.authService.deletedAccount(userId);
         res.clearCookie('jwt');
         return isDeleted;
     }

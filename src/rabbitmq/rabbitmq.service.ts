@@ -1,9 +1,9 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as amqp from 'amqplib'
-import { ArchiveStories } from 'src/entities/archive-stories.entity';
 import { Stories } from 'src/entities/stories.entity';
 import { User } from 'src/entities/user.entity';
+import { UserStoriesLikes } from 'src/entities/userStoriesLikes.entity';
 import { Repository } from 'typeorm';
 
 
@@ -11,7 +11,8 @@ import { Repository } from 'typeorm';
 export class RabbitMQService implements OnModuleInit {
     constructor(@InjectRepository(Stories) private readonly storiesRepository: Repository<Stories>,
                 @InjectRepository(User) private readonly userRepository: Repository<User>,
-                @InjectRepository(ArchiveStories) private readonly archiveStoriesRepository: Repository<ArchiveStories>) {}
+                @InjectRepository(UserStoriesLikes) private readonly userStoriesLikesRepository: Repository<UserStoriesLikes>,
+    ) {}
     private connection: amqp.Connection 
     private channel: amqp.Channel
 
@@ -45,10 +46,8 @@ export class RabbitMQService implements OnModuleInit {
         try{
             msg = JSON.parse(msg.content.toString());
             const stories = await this.storiesRepository.findOne({where: {id: msg.storiesId}});
-            if(stories){
-                await this.transitionStoriesInArchive(msg.userId, stories);
-                await this.storiesRepository.delete(msg.storiesId);
-                console.log(stories, 'is deleted');
+            if(stories && !stories.is_deleted){
+                await this.archiveOrDeleteStories(msg.userId, stories);
             }else{
                 console.log('This stories was deleted before');
             }
@@ -61,12 +60,26 @@ export class RabbitMQService implements OnModuleInit {
         this.channel.sendToQueue('Main', Buffer.from(JSON.stringify(dataObj)));
     }
 
-    async transitionStoriesInArchive(idUser: number, stories: Stories){
+    async archiveOrDeleteStories(idUser: number, stories: Stories){
         const user = await this.userRepository.findOne({where: {id: idUser}, relations: ['settings']});
         if(user.settings.save_stories){
-            const archiveStories = this.archiveStoriesRepository.create({path: 'temp value', user});
-            await this.archiveStoriesRepository.save(archiveStories);
+            stories.is_deleted = true;
+            await this.storiesRepository.save(stories);
+            await this.userStoriesLikesRepository
+                .createQueryBuilder('userstorieslikes')
+                .relation('stories')
+                .of(stories)
+                .delete()
+                .execute()
             console.log('Stories saved in archive');
+        }else{
+            await this.storiesRepository
+                .createQueryBuilder('stories')
+                .update()
+                .set({time_deleted_forever: new Date()})
+                .where('id = :idStories', {idStories: stories.id})
+                .execute();
+            console.log('Stories saved 24 hours, after will be deleted forever');
         }
     }
 

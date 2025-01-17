@@ -20,9 +20,6 @@ export class Settings {
     @Column({default: 'some url', nullable: true})
     avatar_url: string;
 
-    @Column({default: false})
-    is_ban: boolean;
-
     @Column({default: ''})
     about_user: string;
 }

@@ -7,10 +7,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
 import { RegistrationUserDto } from './dto/registration.dto';
-import { changePassword, DeleteAccountDto } from './dto/delete-update.dto';
+import { changePassword } from './dto/delete-update.dto';
 import { Token } from '../entities/token.entity';
 import { Settings } from 'src/entities/settings.entity';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
+import { Profile } from 'src/entities/profile.entity';
+import { use } from 'passport';
 
 
 @Injectable()
@@ -19,7 +21,8 @@ export class AuthService {
     constructor(private readonly jwtService: JwtService,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(Token) private readonly tokenRepository: Repository<Token>,
-        @InjectRepository(Settings) private readonly settingsRepository: Repository<Settings>
+        @InjectRepository(Settings) private readonly settingsRepository: Repository<Settings>,
+        @InjectRepository(Profile) private readonly profileRepository: Repository<Profile>,
     ) {}
 
     async registration(userDto: RegistrationUserDto){
@@ -32,12 +35,15 @@ export class AuthService {
             const userInfo = {
                 user_name: userDto.userName,
                 email: userDto.email,
-                password: hashPassword,
-                private: userDto.private,
+                password: hashPassword
             }
             const newUser = this.userRepository.create(userInfo);
-            const defaultSettingsAccount = this.settingsRepository.create();
-            newUser.settings = defaultSettingsAccount;
+            const settingsAcc = this.settingsRepository.create();
+            settingsAcc.private_acc = (userDto.private_acc !== undefined) ? userDto.private_acc : settingsAcc.private_acc;
+            settingsAcc.language_app = (userDto.language_app) ? userDto.language_app : settingsAcc.language_app;
+            settingsAcc.save_stories = (userDto.save_stories !== undefined) ? userDto.save_stories : settingsAcc.save_stories;
+            settingsAcc.about_user = (userDto.about_user) ? userDto.about_user : settingsAcc.about_user;
+            newUser.settings = settingsAcc;
             await this.userRepository.save(newUser);
             return userInfo;
         } catch (e) {
@@ -46,17 +52,30 @@ export class AuthService {
         }
     }
 
-    async login(userDto: EmailLoginDto | UserNameLoginDto){
+    async loginWithEmail(userDto: EmailLoginDto){
         try {
-            let user: User;
-            if(userDto.email){
-                user = await this.userRepository.findOne({where: {email: userDto.email}, relations: ['token']});
-            }else if(userDto.userName){
-                user = await this.userRepository.findOne({where: {user_name: userDto.userName}, relations: ['token']});
-            }
-            if(!user){
-                throw new NotFoundException(`Not found user, maybe
-                ${(userDto.email) ? userDto.email : userDto.userName} is not correct`);
+            const user = await this.userRepository.findOne({where: {email: userDto.email}, relations: ['token']});
+            const token = await this.login(user, userDto);
+            return token;
+        } catch (error) {
+            console.log('Wrong loginWithEmail', error);
+        }
+    }
+
+    async loginWithUserName(userDto: UserNameLoginDto){
+        try {
+            const user = await this.userRepository.findOne({where: {user_name: userDto.userName}, relations: ['token']});
+            const token = await this.login(user, userDto);
+            return token;
+        } catch (error) {
+            console.log('Wrong loginWithUserName', error);
+        }
+    }
+
+    async login(user: User, userDto: EmailLoginDto | UserNameLoginDto){
+        try {
+            if(!user || user.is_ban){
+                throw new BadRequestException((user.is_ban) ? 'User is block' : 'Not found user');
             }
             const isPassword = await bcrypt.compare(userDto.password, user.password);
             if(!isPassword) throw new BadRequestException('Password is not correct');
@@ -77,63 +96,100 @@ export class AuthService {
     }
 
     async changeSettingsAccount(userId: number, settingChange: ChangeSettingsDto){
-        const user = await this.userRepository.findOne({where: {id: userId}, relations: ['settings']});
-        const updateSettings = {
-            language_app: (settingChange.language_app) ? settingChange.language_app : user.settings.language_app,
-            private_acc: (settingChange.private_acc) ? settingChange.private_acc : user.settings.private_acc,
-            save_stories: (settingChange.save_stories) ? settingChange.save_stories : user.settings.save_stories,
-            about_user: (settingChange.about_user) ? settingChange.about_user : user.settings.about_user,
-
+        try {
+            const user = await this.userRepository.findOne({where: {id: userId}, relations: ['settings']});
+            const updateSettings = {
+                language_app: (settingChange.language_app) ? settingChange.language_app : user.settings.language_app,
+                private_acc: (settingChange.private_acc !== undefined) ? settingChange.private_acc : user.settings.private_acc,
+                save_stories: (settingChange.save_stories !== undefined) ? settingChange.save_stories : user.settings.save_stories,
+                about_user: (settingChange.about_user) ? settingChange.about_user : user.settings.about_user,
+    
+            }
+            user.settings.language_app = updateSettings.language_app;
+            user.settings.private_acc = updateSettings.private_acc;
+            user.settings.save_stories = updateSettings.save_stories;
+            user.settings.about_user = updateSettings.about_user;
+            await this.userRepository.save(user);
+            return settingChange;
+        } catch (error) {
+            console.log(error);
         }
-        user.settings.language_app = updateSettings.language_app;
-        user.settings.private_acc = updateSettings.private_acc;
-        user.settings.save_stories = updateSettings.save_stories;
-        user.settings.about_user = updateSettings.about_user;
-        await this.userRepository.save(user);
-        return settingChange;
     }
 
     async updateEmail(userData: newEmailDto){
-        const user = await this.userRepository.findOne({where: {email: userData.email}});
-        if(!user) throw new NotFoundException('User is not found, email is not correct');
-        const isPassword = await bcrypt.compare(userData.password, user.password);
-        if(!isPassword) throw new BadRequestException('Password is not match');
-        user.email = userData.newEmail;
-        await this.userRepository.save(user);
-        return user;
+        try {
+            const user = await this.userRepository.findOne({where: {email: userData.email}});
+            if(!user) throw new NotFoundException('User is not found, email is not correct');
+            const isPassword = await bcrypt.compare(userData.password, user.password);
+            if(!isPassword) throw new BadRequestException('Password is not match');
+            user.email = userData.newEmail;
+            await this.userRepository.save(user);
+            return user;
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     async updatePassword(userData: changePassword){
-        const user = await this.userRepository.findOne({where: {email: userData.email}});
-        if(!user) throw new NotFoundException('User is not found, email is not correct');
-        const isPassword = await bcrypt.compare(userData.password, user.password);
-        if(!isPassword) throw new BadRequestException('Passwords is not match');
-        const hashPassword = await bcrypt.hash(userData.newPassword, 7);
-        user.password = hashPassword;
-        await this.userRepository.save(user);
-        return user;
+        try {
+            const user = await this.userRepository.findOne({where: {email: userData.email}});
+            if(!user) throw new NotFoundException('User is not found, email is not correct');
+            const isPassword = await bcrypt.compare(userData.password, user.password);
+            if(!isPassword) throw new BadRequestException('Passwords is not match');
+            const hashPassword = await bcrypt.hash(userData.newPassword, 7);
+            user.password = hashPassword;
+            await this.userRepository.save(user);
+            return user;
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     async nameChange(userData: newUserNameDto){
-        const user = await this.userRepository.findOne({where: {user_name: userData.userName}});
-        if(!user) throw new NotFoundException('User is not found');
-        const isPassword = await bcrypt.compare(userData.password, user.password);
-        if(!isPassword) throw new BadRequestException('Password is not match');
-        user.user_name = userData.newUserName;
-        await this.userRepository.save(user);
-        return user;
+        try {
+            const user = await this.userRepository.findOne({where: {user_name: userData.userName}});
+            if(!user) throw new NotFoundException('User is not found');
+            const isPassword = await bcrypt.compare(userData.password, user.password);
+            if(!isPassword) throw new BadRequestException('Password is not match');
+            user.user_name = userData.newUserName;
+            await this.userRepository.save(user);
+            return user;
+        } catch (error) {
+            console.log(error);
+        }
     }
 
-    async deletedAccount(userDto: DeleteAccountDto){
-        const user = await this.userRepository.findOne({where: {user_name: userDto.userName}, relations: ['token', 'settings']});
-        if(!user) throw new NotFoundException('Username is not correct, user is not found');
-        if(user.email != userDto.email) throw new BadRequestException('Email is not correct');
-        const isPassword = await bcrypt.compare(userDto.password, user.password);
-        if(!isPassword) throw new BadRequestException('Passwords do not match');
-        await this.tokenRepository.delete(user.token);
-        await this.settingsRepository.delete(user.settings);
-        await this.userRepository.delete(user);
-        return user;
+    async deletedAccount(userId: number){
+        try {
+            const user = await this.userRepository.findOne({where: {id: userId}, 
+                relations: ['token', 'settings', 'profiles', 'profiles.profile', 'profiles.profile.users']});
+            console.log(user);
+            if(!user) throw new NotFoundException('Not found user');
+            await this.deleteProfileForUser(user);
+            if(user.token){
+                await this.tokenRepository.delete(user.token);
+            }
+            if(user.settings){
+                await this.settingsRepository.delete(user.settings);
+            }
+            await this.userRepository.delete(userId);
+            return user;
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    private async deleteProfileForUser(user: User){
+        try {
+            for(let profile of user.profiles){
+                if(profile.profile.users.length > 1) continue;
+                if(profile.profile.id){
+                    await this.profileRepository.delete(profile.profile.id);
+                }
+            }
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     private async generateToken(payload: PayloadTokenDto){
