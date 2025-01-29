@@ -1,7 +1,11 @@
-export class ProfileDto{
+export class ProfileTextDto{
     aboutProfile: string;
+}
 
-    joinProfile?: boolean;
+export class CreateProfileDto extends ProfileTextDto {
+    subspecies: 'square' | 'portrait' | 'landscape';
+
+    joinProfile: string;
 
     involvedHumanId?: Array<number>;
 }

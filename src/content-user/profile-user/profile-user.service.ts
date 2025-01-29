@@ -1,5 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ProfileDto } from '../dto/createProfile.dto';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -8,7 +7,11 @@ import { UserToProfile } from 'src/entities/userToProfile.entity';
 import { ProfileLikes } from 'src/entities/profileLikes.entity';
 import { CreateCommentDto } from '../dto/createComment.dto';
 import { CommentsProfile } from 'src/entities/commentsProfile.entity';
-import { Cron } from '@nestjs/schedule';
+import { FileMsgDto } from 'src/rabbitmq/dto/msg.dto';
+import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
+import { CreateProfileDto, ProfileTextDto } from '../dto/createProfile.dto';
+import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
+import { S3Service } from 'src/upload-s3/s3.service';
 
 @Injectable()
 export class ProfileUserService {
@@ -17,17 +20,56 @@ export class ProfileUserService {
                 @InjectRepository(UserToProfile) private readonly userToProfileRepository: Repository<UserToProfile>,
                 @InjectRepository(ProfileLikes) private readonly profileLikesRepository: Repository<ProfileLikes>,
                 @InjectRepository(CommentsProfile) private readonly commentsProfileRepository: Repository<CommentsProfile>,
+                @InjectRepository(FollowsAndBlock) private readonly followsAndBlockRepository: Repository<FollowsAndBlock>,
+                private readonly s3Service: S3Service,
+                private readonly rabbitService: RabbitMQService,
             ) {}
 
-    async createProfile(content: Express.Multer.File, userId: number, about_profile: ProfileDto){
+    async create(file, userId: number, about_profile: CreateProfileDto){
         try {
-            const userCreateProfile = await this.userRepository.findOne({where: {id: userId}});
-            if(!userCreateProfile) throw new NotFoundException('Not found user');
-            const newProfile = this.profileRepository.create({path: 'something later', ...about_profile});
+            if(!file) throw new BadRequestException("Upload didn't happened");
+            const profile = await this.createProfile(file, userId, about_profile)
+            return profile;
+        } catch (error) {
+            console.log('err', error);
+        }
+    }
+
+    async createGroup(files, userId: number, about_profile: CreateProfileDto){
+        try {
+            if(!files) throw new BadRequestException("Upload didn't happened");
+            const groupIdentity = new Date();
+            const successfulCreate = [];
+            for(const file of files){
+                const newProfile = await this.createProfile(file, userId, about_profile, groupIdentity);
+                successfulCreate.push(newProfile);
+            }
+            return successfulCreate;
+        } catch (error) {
+            console.log('err', error);
+        }
+    }
+
+
+    private async createProfile(file, userId: number, about_profile: CreateProfileDto, groupIdentity: Date = null){
+        try {
+            const user = await this.userRepository.findOne({where: {id: userId}});
+            if(!user) throw new BadRequestException('Not found user');
+            const newProfile = this.profileRepository.create({path_key: file.key,
+                about_profile: about_profile.aboutProfile,
+                group_post: groupIdentity,
+            });
             await this.profileRepository.save(newProfile);
-            const userProfile = this.userToProfileRepository.create({user: userCreateProfile, profile: newProfile});
+            const userProfile = this.userToProfileRepository.create({user: user, profile: newProfile});
             await this.userToProfileRepository.save(userProfile);
-            if(about_profile.joinProfile){
+            const msg: FileMsgDto = {
+                userId: user.id,
+                fileId: newProfile.id,
+                type: 'post',
+                subspecies: about_profile.subspecies,
+            }
+            await this.rabbitService.sendMessageValidFiles(msg);
+            if(about_profile.joinProfile === 'true'){
                 for(let id of about_profile.involvedHumanId){
                     const curUser = await this.userRepository.findOne({where: {id}});
                     if(!curUser) continue;
@@ -37,7 +79,30 @@ export class ProfileUserService {
             }
             return newProfile;
         } catch (error) {
-            console.log(error, 'Problem in createProfile');
+            console.log(error);
+        }
+    }
+
+    async getPost(userId: number, idPost: number, idOwnerPost: number){
+        try {
+            const post = (userId == idOwnerPost)
+                ? await this.profileRepository.findOne({where: {id: idPost}})
+                : await this.profileRepository.findOne({where: {id: idPost}});
+            if(!post || post.is_ban || post.is_deleted) throw new NotFoundException('Stories not found');
+            if(userId != idOwnerPost){
+                const ownerPost = await this.userRepository.findOne({where: {id: idOwnerPost}, relations: ['settings']});
+                if(ownerPost.settings.private_acc){
+                    const isAccess = await this.followsAndBlockRepository.findOne({where: {
+                        who_follows: {id: userId},
+                        user_follows: {id: idOwnerPost}
+                    }})
+                    if(!isAccess || isAccess.is_block || !isAccess.accepted) throw new BadRequestException("Don't have access");
+                }
+            }
+            const presignedUrl = await this.s3Service.generatePresignedUrl(post.path_key);
+            return {post, presignedUrl};
+        } catch (error) {
+            console.log('Something wrong with getStoriesById', error);
         }
     }
 
@@ -46,7 +111,7 @@ export class ProfileUserService {
             const profile = await this.profileRepository.findOne({where: {id: idProfile}});
             if(!profile) throw new NotFoundException('Not found profile');
             profile.is_deleted = true;
-            profile.deletedAt = new Date();
+            profile.deleted_at = new Date();
             await this.profileRepository.save(profile);
             await this.commentsProfileRepository
                 .createQueryBuilder('commentsprofile')
@@ -61,7 +126,19 @@ export class ProfileUserService {
         }
     }
 
-    async updateAboutProfile(idProfile: number, aboutProfile: ProfileDto){
+    async deleteGroupProfile(groupName: string){
+        try {
+            const groupNameDate = new Date(groupName);
+            const deleteProfile = await this.profileRepository.find({where: {group_post: groupNameDate}})
+            for(let profile of deleteProfile){
+                await this.deleteProfile(profile.id);
+            }
+        } catch (error) {
+            console.log('Something wrong with deleteGroupProfile');
+        }
+    }
+
+    async updateAboutProfile(idProfile: number, aboutProfile: ProfileTextDto){
         try {
             const profile = await this.profileRepository.findOne({where: {id: idProfile}});
             if(!profile) throw new NotFoundException('Not found profile');
@@ -78,7 +155,7 @@ export class ProfileUserService {
             const profile = await this.profileRepository.findOne({where: {id: idDeletedProfile}});
             if(!profile) throw new NotFoundException('Not found profile');
             profile.is_deleted = false;
-            profile.deletedAt = null;
+            profile.deleted_at = null;
             await this.profileRepository.save(profile);
             await this.commentsProfileRepository
                 .createQueryBuilder('comments_profile')

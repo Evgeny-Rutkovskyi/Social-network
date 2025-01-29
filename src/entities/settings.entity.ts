@@ -17,7 +17,7 @@ export class Settings {
     @Column({default: true})
     save_stories: boolean;
 
-    @Column({default: 'some url', nullable: true})
+    @Column({default: 'default', nullable: true})
     avatar_url: string;
 
     @Column({default: ''})

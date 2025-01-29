@@ -7,10 +7,12 @@ import { ContentUserService } from './content-user.service';
 import { RabbitMQModule } from '../../rabbitmq/rabbitmq.module';
 import { UserStoriesLikes } from 'src/entities/userStoriesLikes.entity';
 import { StoriesView } from 'src/entities/storiesView.entity';
+import { S3Module } from 'src/upload-s3/s3.module';
+import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
 
 @Module({
-    imports: [RabbitMQModule, TypeOrmModule.forFeature([User, Stories, 
-        UserStoriesLikes, StoriesView])],
+    imports: [RabbitMQModule, S3Module, TypeOrmModule.forFeature([User, Stories, 
+        UserStoriesLikes, StoriesView, FollowsAndBlock])],
     controllers: [ContentUserController],
     providers: [ContentUserService],
     exports: [ContentUserService]

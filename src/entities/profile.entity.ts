@@ -13,14 +13,17 @@ export class Profile {
     @Column({default: 0})
     qty_likes: number;
 
+    @Column({default: null})
+    group_post: Date;
+
     @Column({default: ''})
     about_profile: string;
 
-    @Column({default: 'path for photo in S3'})
-    path: string;
+    @Column({nullable: false})
+    path_key: string;
 
     @Column({default: false})
-    status_ban: boolean;
+    is_ban: boolean;
 
     @Column({default: null})
     @Index()
@@ -34,7 +37,7 @@ export class Profile {
 
     @Column({default: null})
     @Index()
-    deletedAt: Date;
+    deleted_at: Date;
 
     @ManyToMany(() => ProfileLikes, (like) => like.profile, {cascade: true})
     likes: ProfileLikes[];

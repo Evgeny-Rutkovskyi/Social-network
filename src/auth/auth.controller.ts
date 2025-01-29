@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Patch, Post, Res, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Param, Patch, Post, Res, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { EmailLoginDto, newEmailDto, newUserNameDto, UserNameLoginDto } from './dto/create-user.dto';
 import { Response } from 'express';
@@ -21,6 +21,11 @@ export class AuthController {
         return await this.authService.registration(userData);
     }
 
+    @Post('/user/setting/:id')
+    async createOrChangeSettings(@Param('id') userId: number, @Body() customSettings: ChangeSettingsDto){
+        return await this.authService.createOrChangeSettings(userId, customSettings);
+    }
+
     @Post('/login/email')
     async loginWithEmail(@Body() userData: EmailLoginDto, 
     @Res({passthrough: true}) res: Response){
@@ -35,12 +40,6 @@ export class AuthController {
         const token = await this.authService.loginWithUserName(userData);
         res.cookie('jwt', token, {httpOnly: true, secure: true});
         return token;
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Post('/change/settings')
-    async changeSettings(@UserField('userId') userId: number, @Body() settingChange: ChangeSettingsDto){
-        return await this.authService.changeSettingsAccount(userId, settingChange);
     }
 
     @UseGuards(JwtAuthGuard)

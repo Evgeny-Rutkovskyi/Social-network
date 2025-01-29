@@ -12,7 +12,9 @@ import { Token } from '../entities/token.entity';
 import { Settings } from 'src/entities/settings.entity';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
 import { Profile } from 'src/entities/profile.entity';
-import { use } from 'passport';
+import { S3Service } from 'src/upload-s3/s3.service';
+import { Stories } from 'src/entities/stories.entity';
+import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
 
 
 @Injectable()
@@ -23,6 +25,8 @@ export class AuthService {
         @InjectRepository(Token) private readonly tokenRepository: Repository<Token>,
         @InjectRepository(Settings) private readonly settingsRepository: Repository<Settings>,
         @InjectRepository(Profile) private readonly profileRepository: Repository<Profile>,
+        @InjectRepository(Stories) private readonly storiesRepository: Repository<Stories>,
+        private readonly s3Service: S3Service,
     ) {}
 
     async registration(userDto: RegistrationUserDto){
@@ -38,12 +42,6 @@ export class AuthService {
                 password: hashPassword
             }
             const newUser = this.userRepository.create(userInfo);
-            const settingsAcc = this.settingsRepository.create();
-            settingsAcc.private_acc = (userDto.private_acc !== undefined) ? userDto.private_acc : settingsAcc.private_acc;
-            settingsAcc.language_app = (userDto.language_app) ? userDto.language_app : settingsAcc.language_app;
-            settingsAcc.save_stories = (userDto.save_stories !== undefined) ? userDto.save_stories : settingsAcc.save_stories;
-            settingsAcc.about_user = (userDto.about_user) ? userDto.about_user : settingsAcc.about_user;
-            newUser.settings = settingsAcc;
             await this.userRepository.save(newUser);
             return userInfo;
         } catch (e) {
@@ -95,26 +93,19 @@ export class AuthService {
         }
     }
 
-    async changeSettingsAccount(userId: number, settingChange: ChangeSettingsDto){
+    async createOrChangeSettings(userId: number, customSettings: ChangeSettingsDto){
         try {
             const user = await this.userRepository.findOne({where: {id: userId}, relations: ['settings']});
-            const updateSettings = {
-                language_app: (settingChange.language_app) ? settingChange.language_app : user.settings.language_app,
-                private_acc: (settingChange.private_acc !== undefined) ? settingChange.private_acc : user.settings.private_acc,
-                save_stories: (settingChange.save_stories !== undefined) ? settingChange.save_stories : user.settings.save_stories,
-                about_user: (settingChange.about_user) ? settingChange.about_user : user.settings.about_user,
-    
-            }
-            user.settings.language_app = updateSettings.language_app;
-            user.settings.private_acc = updateSettings.private_acc;
-            user.settings.save_stories = updateSettings.save_stories;
-            user.settings.about_user = updateSettings.about_user;
+            if(!user) throw new BadRequestException('Not found User');
+            if(!user.settings) user.settings = this.settingsRepository.create();
+            user.settings = {...user.settings, ...customSettings};
             await this.userRepository.save(user);
-            return settingChange;
         } catch (error) {
-            console.log(error);
+            console.log('Something wrong with createOrChangeSettings', error);
         }
     }
+
+    
 
     async updateEmail(userData: newEmailDto){
         try {
@@ -162,9 +153,10 @@ export class AuthService {
     async deletedAccount(userId: number){
         try {
             const user = await this.userRepository.findOne({where: {id: userId}, 
-                relations: ['token', 'settings', 'profiles', 'profiles.profile', 'profiles.profile.users']});
+                relations: ['token', 'settings', 'profiles', 'profiles.profile', 'profiles.profile.users', 'stories']});
             console.log(user);
             if(!user) throw new NotFoundException('Not found user');
+            await this.deleteStories(user.stories);
             await this.deleteProfileForUser(user);
             if(user.token){
                 await this.tokenRepository.delete(user.token);
@@ -184,11 +176,19 @@ export class AuthService {
             for(let profile of user.profiles){
                 if(profile.profile.users.length > 1) continue;
                 if(profile.profile.id){
+                    await this.s3Service.deleteFile(profile.profile.path_key);
                     await this.profileRepository.delete(profile.profile.id);
                 }
             }
         } catch (error) {
             console.log(error);
+        }
+    }
+
+    private async deleteStories(stories: Array<Stories>){
+        for(let story of stories){
+            await this.s3Service.deleteFile(story.path_key);
+            await this.storiesRepository.delete(story);
         }
     }
 

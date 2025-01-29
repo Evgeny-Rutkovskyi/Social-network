@@ -7,6 +7,7 @@ import { Profile } from 'src/entities/profile.entity';
 import { Settings } from 'src/entities/settings.entity';
 import { Stories } from 'src/entities/stories.entity';
 import { User } from 'src/entities/user.entity';
+import { S3Service } from 'src/upload-s3/s3.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class CronService {
             @InjectRepository(Profile) private readonly profileRepository: Repository<Profile>,
             @InjectRepository(Settings) private readonly settingsRepository: Repository<Settings>,
             @InjectRepository(FollowsAndBlock) private readonly followsRepository: Repository<FollowsAndBlock>,
+            private readonly s3Service: S3Service,
         ) {}
 
     @Cron('0 0 0 * * * ')
@@ -33,22 +35,24 @@ export class CronService {
     private async DeletedStoriesForever(){
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const thirtyDayAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        await this.storiesRepository
+        const overdueStories = await this.storiesRepository
             .createQueryBuilder('stories')
-            .delete()
+            .select(['stories.id', 'stories.path_key'])
             .where('time_deleted_forever < :oneDayAgo OR time_ban < :thirtyDayAgo', 
                 {oneDayAgo, thirtyDayAgo})
-            .execute();
+            .getMany();
+        await this.deleteFromBucket(overdueStories, this.storiesRepository);
         console.log('Stories was deleted forever');
     }
 
     private async DeleteProfileForever(){
         const thirtyDayAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        await this.profileRepository
+        const overduePost = await this.profileRepository
             .createQueryBuilder('profile')
-            .delete()
-            .where('deletedAt < :thirtyDayAgo OR time_ban < :thirtyDayAgo', {thirtyDayAgo})
-            .execute();
+            .select()
+            .where('deleted_at < :thirtyDayAgo OR time_ban < :thirtyDayAgo', {thirtyDayAgo})
+            .getMany();
+        await this.deleteFromBucket(overduePost, this.profileRepository);
         console.log('END CRON');
     }
 
@@ -86,5 +90,12 @@ export class CronService {
             .where('accepted_time < :oneDayAgo', {oneDayAgo})
             .execute()
         console.log('Delete not accepted follows');
+    }
+
+    private async deleteFromBucket(overdueFiles: Array<Stories | Profile>, repository){
+        for(let content of overdueFiles){
+            await this.s3Service.deleteFile(content.path_key);
+            await repository.delete(content.id);
+        }
     }
 }

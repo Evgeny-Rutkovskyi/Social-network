@@ -11,6 +11,7 @@ import { Settings } from 'src/entities/settings.entity';
 import { Profile } from 'src/entities/profile.entity';
 import { Stories } from 'src/entities/stories.entity';
 import { UserToProfile } from 'src/entities/userToProfile.entity';
+import { S3Module } from 'src/upload-s3/s3.module';
 
 @Module({
   imports: [JwtModule.registerAsync({
@@ -19,7 +20,7 @@ import { UserToProfile } from 'src/entities/userToProfile.entity';
       secret: configService.get<string>('jwt_secret'),
       signOptions: {expiresIn: '30d'}
     })
-  }), TypeOrmModule.forFeature([User, Token, Settings, Profile, Stories, UserToProfile])],
+  }), TypeOrmModule.forFeature([User, Token, Settings, Profile, Stories, UserToProfile]), S3Module],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService]

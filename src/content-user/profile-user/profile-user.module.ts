@@ -7,10 +7,13 @@ import { Profile } from 'src/entities/profile.entity';
 import { UserToProfile } from 'src/entities/userToProfile.entity';
 import { ProfileLikes } from 'src/entities/profileLikes.entity';
 import { CommentsProfile } from 'src/entities/commentsProfile.entity';
+import { RabbitMQModule } from 'src/rabbitmq/rabbitmq.module';
+import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
+import { S3Module } from 'src/upload-s3/s3.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Profile, UserToProfile, 
-    ProfileLikes, CommentsProfile])],
+  imports: [RabbitMQModule, S3Module, TypeOrmModule.forFeature([User, Profile, UserToProfile, 
+    ProfileLikes, CommentsProfile, FollowsAndBlock])],
   providers: [ProfileUserService],
   controllers: [ProfileUserController]
 })

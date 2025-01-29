@@ -1,20 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ContentUserService } from './content-user.service';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { UserField } from 'src/custom-decorator/user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SettingsStoriesDto } from '../dto/settingsStories.dto';
+import { S3MulterConfig } from '../../utils/connectionS3.util';
+import { PublicStoriesDto } from '../dto/publicStories.dto';
+
 
 @UseGuards(JwtAuthGuard)
 @Controller('content-user')
 export class ContentUserController {
     constructor(private readonly contentUserService : ContentUserService) {}
-
-    @UseInterceptors(FileInterceptor('content'))
+    
     @Post('/stories')
-    async createStories(@UserField('userId') userId: number, @UploadedFile() content: Express.Multer.File,
-                        @Body() settingStories: SettingsStoriesDto){
-        return await this.contentUserService.createStories(userId, content, settingStories);
+    @UseInterceptors(FileInterceptor('file', S3MulterConfig))
+    async createStories(@UserField('userId') userId: number, @UploadedFile() file: Express.Multer.File,
+    @Query('friend') only_friend: string){
+        return await this.contentUserService.createStories(userId, file, only_friend);
     }
 
     
@@ -35,13 +37,14 @@ export class ContentUserController {
 
     @Post('/recreate/stories/:id')
     async recreateStories(@UserField('userId') userId: number, @Param('id') idStories: number,
-        @Body() settingStories: SettingsStoriesDto){
-        return await this.contentUserService.recreateStories(userId, idStories, settingStories);
+        @Body() publicStories: PublicStoriesDto){
+        return await this.contentUserService.recreateStories(userId, idStories, publicStories);
     }
     
     @Get('/stories/:id')
-    async getStoriesById(@UserField('userId') userId: number, @Param('id') idStories: number){
-        return await this.contentUserService.getStoriesById(userId, idStories);
+    async getStoriesById(@UserField('userId') userId: number, @Param('id') idStories: number,
+    @Query('owner_stories') idOwnerStories: number){
+        return await this.contentUserService.getStoriesById(userId, idStories, idOwnerStories);
     }
 
     

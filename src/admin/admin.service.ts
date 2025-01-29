@@ -22,13 +22,19 @@ export class AdminService {
         @InjectRepository(Token) private readonly tokenRepository: Repository<Token>,
     ) {}
     
-    async onApplicationBootstrap(){       
+    async onApplicationBootstrap(){ 
+        const adminName = this.configService.get<string>('first_admin_name');
+        const existingAdmin = await this.userRepository.findOne({where: {user_name: adminName}});
+        if(existingAdmin){
+            console.log('Admin is existing');
+            return;
+        };
         const settingsAccAdmin = {
             private_acc: Boolean(this.configService.get<boolean>('first_admin_private')),
         }
         const hashPassword = await bcrypt.hash(this.configService.get<string>('first_admin_password'), 7);
         const adminInfo = {
-            user_name: this.configService.get<string>('first_admin_name'),
+            user_name: adminName,
             email: this.configService.get<string>('first_admin_email'),
             password: hashPassword,
             is_Admin: true,
@@ -110,7 +116,7 @@ export class AdminService {
 
     async banProfile(idProfile: number){
         try {
-            await this.queryBuilder('profile', {status_ban: true, time_ban: new Date()}, 'id = :id', idProfile, this.profileRepository);
+            await this.queryBuilder('profile', {is_ban: true, time_ban: new Date()}, 'id = :id', idProfile, this.profileRepository);
             return 'Profile was block';
         } catch (error) {
             console.log('Wrong blockProfile', error);
@@ -119,7 +125,7 @@ export class AdminService {
 
     async unblockProfile(idProfile: number){
         try {
-            await this.queryBuilder('profile', {status_ban: false, time_ban: null}, 'id = :id', idProfile, this.profileRepository);
+            await this.queryBuilder('profile', {is_ban: false, time_ban: null}, 'id = :id', idProfile, this.profileRepository);
             return 'Profile was unblock';
         } catch (error) {
             console.log('Wrong unblockProfile', error);

@@ -14,6 +14,9 @@ export class Stories {
     @Column({default: 0})
     likes_qty: number;
 
+    @Column({nullable: false})
+    path_key: string;
+
     @Column({default: false})
     is_ban: boolean;
 
