@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { Token } from '../entities/token.entity';
-import { JwtStrategy } from './jwt.strategy';
+import { JwtStrategy } from './jwt-strategy/jwt.strategy';
 import { Settings } from 'src/entities/settings.entity';
 import { Profile } from 'src/entities/profile.entity';
 import { Stories } from 'src/entities/stories.entity';

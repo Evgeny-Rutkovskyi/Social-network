@@ -7,14 +7,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
 import { RegistrationUserDto } from './dto/registration.dto';
-import { changePassword } from './dto/delete-update.dto';
+import { changePassword } from './dto/registration.dto';
 import { Token } from '../entities/token.entity';
 import { Settings } from 'src/entities/settings.entity';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
 import { Profile } from 'src/entities/profile.entity';
 import { S3Service } from 'src/upload-s3/s3.service';
 import { Stories } from 'src/entities/stories.entity';
-import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
 
 
 @Injectable()
@@ -75,8 +74,7 @@ export class AuthService {
             if(!user || user.is_ban){
                 throw new BadRequestException((user.is_ban) ? 'User is block' : 'Not found user');
             }
-            const isPassword = await bcrypt.compare(userDto.password, user.password);
-            if(!isPassword) throw new BadRequestException('Password is not correct');
+            if(!this.comparePassword(userDto.password, user.password)) throw new BadRequestException('Password is not correct');
             const payload = {userId: user.id, email: user.email, userName: user.user_name};
             const newToken = await this.generateToken(payload);
             if(user.token){
@@ -111,8 +109,7 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {email: userData.email}});
             if(!user) throw new NotFoundException('User is not found, email is not correct');
-            const isPassword = await bcrypt.compare(userData.password, user.password);
-            if(!isPassword) throw new BadRequestException('Password is not match');
+            if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             user.email = userData.newEmail;
             await this.userRepository.save(user);
             return user;
@@ -125,8 +122,7 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {email: userData.email}});
             if(!user) throw new NotFoundException('User is not found, email is not correct');
-            const isPassword = await bcrypt.compare(userData.password, user.password);
-            if(!isPassword) throw new BadRequestException('Passwords is not match');
+            if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             const hashPassword = await bcrypt.hash(userData.newPassword, 7);
             user.password = hashPassword;
             await this.userRepository.save(user);
@@ -140,8 +136,7 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {user_name: userData.userName}});
             if(!user) throw new NotFoundException('User is not found');
-            const isPassword = await bcrypt.compare(userData.password, user.password);
-            if(!isPassword) throw new BadRequestException('Password is not match');
+            if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             user.user_name = userData.newUserName;
             await this.userRepository.save(user);
             return user;
@@ -153,8 +148,8 @@ export class AuthService {
     async deletedAccount(userId: number){
         try {
             const user = await this.userRepository.findOne({where: {id: userId}, 
-                relations: ['token', 'settings', 'profiles', 'profiles.profile', 'profiles.profile.users', 'stories']});
-            console.log(user);
+                relations: ['token', 'settings', 'profiles', 'profiles.profile',
+                    'profiles.profile.users', 'stories']});
             if(!user) throw new NotFoundException('Not found user');
             await this.deleteStories(user.stories);
             await this.deleteProfileForUser(user);
@@ -194,5 +189,10 @@ export class AuthService {
 
     private async generateToken(payload: PayloadTokenDto){
         return await this.jwtService.signAsync(payload);
+    }
+
+    private async comparePassword(password: string, hashPassword: string){
+        const isCompare = await bcrypt.compare(password, hashPassword);
+        return (isCompare) ? true : false;
     }
 }

@@ -15,7 +15,6 @@ export class UserService {
         try {
             const who_follow = await this.userRepository.findOne({where: {id: who_follow_id}});
             const follow_user = await this.userRepository.findOne({where: {id: user_follow}});
-            who_follow.qty_following
             const info_follow = {accepted: true, 
                 accepted_time: null, who_follows: who_follow, user_follows: follow_user};
             const private_acc = await this.userRepository

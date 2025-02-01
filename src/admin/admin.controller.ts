@@ -57,6 +57,4 @@ export class AdminController {
     async takeAdmin(@Param('id') oldAdmin: number){
         return await this.adminService.takeAdmin(oldAdmin);
     }
-
-
 }

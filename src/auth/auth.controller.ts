@@ -3,10 +3,10 @@ import { AuthService } from './auth.service';
 import { EmailLoginDto, newEmailDto, newUserNameDto, UserNameLoginDto } from './dto/create-user.dto';
 import { Response } from 'express';
 import { RegistrationUserDto } from './dto/registration.dto';
-import { DtoUserInterceptor } from './interceptors/dto.interceptor';
-import { changePassword } from './dto/delete-update.dto';
+import { DtoUserInterceptor } from './interceptors/dtoInterceptor';
+import { changePassword } from './dto/registration.dto';
 import { JwtAuthGuard } from '../guards/jwt.guard';
-import { validateExceptionFactory } from './validate-exception';
+import { validateExceptionFactory } from './exception/validate-exception';
 import { UserField } from 'src/custom-decorator/user.decorator';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
 

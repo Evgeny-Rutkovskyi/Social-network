@@ -85,9 +85,7 @@ export class ProfileUserService {
 
     async getPost(userId: number, idPost: number, idOwnerPost: number){
         try {
-            const post = (userId == idOwnerPost)
-                ? await this.profileRepository.findOne({where: {id: idPost}})
-                : await this.profileRepository.findOne({where: {id: idPost}});
+            const post = await this.profileRepository.findOne({where: {id: idPost}});
             if(!post || post.is_ban || post.is_deleted) throw new NotFoundException('Stories not found');
             if(userId != idOwnerPost){
                 const ownerPost = await this.userRepository.findOne({where: {id: idOwnerPost}, relations: ['settings']});

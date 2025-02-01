@@ -8,7 +8,7 @@ import { S3Service } from 'src/upload-s3/s3.service';
 import { checkPhotoSize } from 'src/utils/sharp.util';
 import { Repository } from 'typeorm';
 import { FileMsgDto, StoriesMsgDto } from './dto/msg.dto';
-import { checkVideoFile, longStories, splitVideo } from 'src/utils/FFmpeg.util';
+import { checkVideoFile, longStories } from 'src/utils/FFmpeg.util';
 import { Profile } from 'src/entities/profile.entity';
 
 
@@ -147,17 +147,11 @@ export class RabbitMQService implements OnModuleInit {
                 resultResizeFile = false;
             }
         }
-        if(resultResizeFile === false){
-            await fileRepository.delete(file.id);
-        }
+        if(resultResizeFile === false) await fileRepository.delete(file.id);
         const newPath = `users/${msg.userId}/${originalNameFile}`;
-        if(resultResizeFile === true){
-            await this.s3Service.uploadFilesToBucket(bufferFile, newPath);
-            file.path_key = newPath;
-            await fileRepository.save(file);
-        }
-        if(typeof resultResizeFile !== 'boolean' && resultResizeFile){
-            await this.s3Service.uploadFilesToBucket(resultResizeFile, newPath);
+        if(resultResizeFile === true || typeof resultResizeFile !== 'boolean'){
+            const upload = (resultResizeFile === true) ? bufferFile : resultResizeFile;
+            await this.s3Service.uploadFilesToBucket(upload, newPath);
             file.path_key = newPath;
             await fileRepository.save(file);
         }

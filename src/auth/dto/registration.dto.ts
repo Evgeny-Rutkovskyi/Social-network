@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsString, Length, Max, MaxLength, Min, ValidateIf } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, Length } from "class-validator";
 
 export class RegistrationUserDto {
     @IsNotEmpty()
@@ -14,21 +14,11 @@ export class RegistrationUserDto {
     @IsString()
     @Length(6, 15)
     password: string;
+}
 
-    @ValidateIf(obj => obj.private_acc !== undefined)
-    @IsBoolean()
-    private_acc?: boolean;
-
-    @ValidateIf(obj => obj.language_app !== undefined)
+export class changePassword extends RegistrationUserDto {
+    @IsNotEmpty()
     @IsString()
-    language_app?: string;
-    
-    @ValidateIf(obj => obj.save_stories !== undefined)
-    @IsBoolean()
-    save_stories?: boolean;
-
-    @ValidateIf(obj => obj.about_user !== undefined)
-    @IsString()
-    @MaxLength(200)
-    about_user?: string;
+    @Length(6, 15)
+    newPassword: string;
 }

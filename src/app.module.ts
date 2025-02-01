@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { ContentUserModule } from './content-user/stories-module/content-user.module';
-import { RoleModule } from './role/role.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from './configuration/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -26,7 +25,7 @@ import { CronModule } from './cron/cron.module';
 import { FollowsAndBlock } from './entities/followsAndBlock.entity';
 
 @Module({
-  imports: [UserModule, AuthModule, ContentUserModule, RoleModule, 
+  imports: [UserModule, AuthModule, ContentUserModule, 
     ProfileUserModule, RabbitMQModule, ConfigModule.forRoot({
     load: [config],
     isGlobal: true
