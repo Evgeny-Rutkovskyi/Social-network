@@ -23,6 +23,9 @@ import { StoriesView } from './entities/storiesView.entity';
 import { AdminModule } from './admin/admin.module';
 import { CronModule } from './cron/cron.module';
 import { FollowsAndBlock } from './entities/followsAndBlock.entity';
+import { MemberChat } from './entities/membersChat.entity';
+import { Chats } from './entities/chats.entity';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [UserModule, AuthModule, ContentUserModule, 
@@ -39,10 +42,11 @@ import { FollowsAndBlock } from './entities/followsAndBlock.entity';
       password: configService.get('password_db'),
       database: configService.get('name_db'),
       entities: [Token, User, Stories, Settings, UserStoriesLikes,
-        ProfileLikes, Profile, CommentsProfile, UserToProfile, StoriesView, FollowsAndBlock],
+        ProfileLikes, Profile, CommentsProfile, UserToProfile, StoriesView, FollowsAndBlock,
+        MemberChat, Chats],
       synchronize: true, // only dev
   }),
-  }), S3Module, ScheduleModule.forRoot(), AdminModule, CronModule],
+  }), S3Module, ScheduleModule.forRoot(), AdminModule, CronModule, ChatModule],
   controllers: [],
   providers: [S3Service],
 })

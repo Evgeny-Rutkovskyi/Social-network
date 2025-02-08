@@ -9,6 +9,7 @@ import { UserToProfile } from "./userToProfile.entity";
 import { StoriesView } from "./storiesView.entity";
 import { Exclude } from "class-transformer";
 import { FollowsAndBlock } from "./followsAndBlock.entity";
+import { MemberChat } from "./membersChat.entity";
 
 
 @Entity()
@@ -76,4 +77,7 @@ export class User {
 
     @OneToMany(() => StoriesView, (relation) => relation.user, {cascade: true})
     view_story: StoriesView[];
+
+    @OneToMany(() => MemberChat, (room) => room.user, {cascade: true})
+    rooms: MemberChat[];
 }

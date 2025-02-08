@@ -10,11 +10,11 @@ services:
       - db
       - rabbitmq
 
-  chat:
-    build: ./WebSocket-service
-    restart: always
-    ports:
-      - 3001:3001
+  #chat:
+    #build: ./WebSocket-service
+    #restart: always
+    #ports:
+    #  - 3001:3001
 
   db:
     image: postgres
