@@ -5,7 +5,6 @@ import { ContentUserModule } from './content-user/stories-module/content-user.mo
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from './configuration/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { S3Service } from './upload-s3/s3.service';
 import { S3Module } from './upload-s3/s3.module';
 import { Token } from './entities/token.entity';
 import { User } from './entities/user.entity';
@@ -23,9 +22,6 @@ import { StoriesView } from './entities/storiesView.entity';
 import { AdminModule } from './admin/admin.module';
 import { CronModule } from './cron/cron.module';
 import { FollowsAndBlock } from './entities/followsAndBlock.entity';
-import { MemberChat } from './entities/membersChat.entity';
-import { Chats } from './entities/chats.entity';
-import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [UserModule, AuthModule, ContentUserModule, 
@@ -43,11 +39,11 @@ import { ChatModule } from './chat/chat.module';
       database: configService.get('name_db'),
       entities: [Token, User, Stories, Settings, UserStoriesLikes,
         ProfileLikes, Profile, CommentsProfile, UserToProfile, StoriesView, FollowsAndBlock,
-        MemberChat, Chats],
+      ],
       synchronize: true, // only dev
   }),
-  }), S3Module, ScheduleModule.forRoot(), AdminModule, CronModule, ChatModule],
+  }), S3Module, ScheduleModule.forRoot(), AdminModule, CronModule],
   controllers: [],
-  providers: [S3Service],
+  providers: [],
 })
 export class AppModule {}

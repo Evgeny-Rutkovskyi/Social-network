@@ -7,16 +7,35 @@ services:
     ports:
       - 3000:3000
     depends_on:
-      - db
+      - sql_db
       - rabbitmq
 
-  #chat:
-    #build: ./WebSocket-service
-    #restart: always
-    #ports:
-    #  - 3001:3001
+  chat_service:
+    build: ./WebSocket-service
+    restart: always
+    ports:
+      - 3001:3001
 
-  db:
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: chat
+    ports:
+      - 27017:27017
+  
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: chat
+      ME_CONFIG_MONGODB_URL: mongodb://admin:chat@mongo:27017/
+
+  sql_db:
     image: postgres
     restart: always
     shm_size: 128mb

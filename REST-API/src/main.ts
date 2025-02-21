@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
   const configService = app.get(ConfigService);
-  const port = configService.get<string>('port');
-  await app.listen(port, () => console.log(`Server in port - "${port}"`));
+  const port = configService.get<number>('port');
+  await app.listen(port || 3000, () => console.log(`Server in port - "${port || 3000}"`));
 }
 bootstrap();
