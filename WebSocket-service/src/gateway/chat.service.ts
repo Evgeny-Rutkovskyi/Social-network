@@ -4,6 +4,7 @@ import { ChatRepository } from 'src/repositories/chat.repository';
 import { MembersChatRepository } from 'src/repositories/membersChat.repository';
 import { MessageRepository } from 'src/repositories/message.repository';
 import { ObjectId } from 'mongodb';
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class ChatService {
@@ -34,7 +35,7 @@ export class ChatService {
             }
             return {permission: false, messages: []}
         } catch (error) {
-            console.log('Something wrong with checkAccessToRoom', error);
+            logger.error('Error', { error });
         }
     }
     
@@ -48,7 +49,7 @@ export class ChatService {
             })
             await this.addMessageToChatAndUser(saveMessage._id, payload.chatId, payload.user.userId);
         } catch (error) {
-            console.log('Something wrong with saveMessage', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -65,7 +66,7 @@ export class ChatService {
             await this.messageRepository.save(message);
             return true;
         } catch (error) {
-            console.log('Something wrong with editMessage', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -73,7 +74,7 @@ export class ChatService {
         try {
             await this.messageRepository.findOneAndDelete({_id: payload.messageId});
         } catch (error) {
-            console.log('Something wrong with deleteMessage', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -88,7 +89,7 @@ export class ChatService {
             });
             await this.addMessageToChatAndUser(replyMessage._id, payload.chatId, payload.user.userId);
         } catch (error) {
-            console.log('Something wrong with replyMessage', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -114,7 +115,7 @@ export class ChatService {
                 await this.addMessageToChatAndUser(forwardMessage._id, chat, payload.message.user.userId);
             }
         } catch (error) {
-            console.log('Something wrong with forwardMessage', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -132,7 +133,7 @@ export class ChatService {
             await this.membersChatRepository.save(user);
             await this.chatRepository.save(chat);
         } catch (error) {
-            console.log('Something wrong with some', error);
+            logger.error('Error', { error });
         }
     }
     

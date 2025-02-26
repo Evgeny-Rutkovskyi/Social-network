@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class UserService {
@@ -31,9 +32,10 @@ export class UserService {
             }
             const new_follow = this.followRepository.create(info_follow);
             await this.followRepository.save(new_follow);
+            logger.info('To follow', { who_follow, follow_user });
             return new_follow;
         } catch (error) {
-            console.log('Wrong toFollow', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -50,9 +52,10 @@ export class UserService {
             if(resultUpdate.affected > 0){
                 await this.operationWithQtyFollowingOrFollowers(who_was_accepted, who_accepted, 1)
             }
+            logger.info('Accept follow', { who_accepted, who_was_accepted });
             return 'Followers was accepted';
         } catch (error) {
-            console.log('Wrong acceptFollow', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -68,9 +71,10 @@ export class UserService {
             if(resultDelete.affected > 0){
                 await this.operationWithQtyFollowingOrFollowers(who_follow_id, user_follow, -1)
             }
+            logger.info('Cancel follow', { who_follow_id, user_follow });
             return 'Follow was delete';
         } catch (error) {
-            console.log('Wrong cancelFollow', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -86,9 +90,10 @@ export class UserService {
             if(resultDelete.affected > 0){
                 await this.operationWithQtyFollowingOrFollowers(who_follow_id, user_follow, -1);
             }
+            logger.info('Delete follower', { user_follow, who_follow_id });
             return 'Follower was delete';
         } catch (error) {
-            console.log('Wrong deleteFollower', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -102,9 +107,10 @@ export class UserService {
                     {who_adds_id, who_was_added_id}
                 )
                 .execute();
+            logger.info('Add best friend', { who_adds_id, who_was_added_id });
             return 'User was added in best friend';
         } catch (error) {
-            console.log('Wrong addBestFriend', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -118,9 +124,10 @@ export class UserService {
                     {who_deletes_id, who_was_removed_id}
                 )
                 .execute();
+            logger.info('Delete with best friend', { who_deletes_id, who_was_removed_id });
             return 'User was deleted in best friend';
         } catch (error) {
-            console.log('Wrong deleteWithBestFriend', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -134,7 +141,7 @@ export class UserService {
                 .getRawMany()
             return allFollowing;
         } catch (error) {
-            console.log('Wrong with getAllFollowing', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -148,7 +155,7 @@ export class UserService {
                 .getRawMany()
             return allBestFriend;
         } catch (error) {
-            console.log('Wrong with getAllBestFriends', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -162,7 +169,7 @@ export class UserService {
                 .getRawMany()
             return allFollowers;
         } catch (error) {
-            console.log('Wrong with getAllFollowers', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -174,9 +181,10 @@ export class UserService {
             const follow_user = await this.userRepository.findOne({where: {id: who_was_blocked}});
             const new_block = this.followRepository.create({who_follows: who_follow, user_follows: follow_user, is_block: true});
             await this.followRepository.save(new_block);
+            logger.info('Block user', { who_follow,  new_block});
             return 'User was block';
         } catch (error) {
-            console.log('Wrong blockUser', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -189,9 +197,10 @@ export class UserService {
                     {who_unblocks, who_was_unblocks}
                 )
                 .execute();
+            logger.info('Unblock user', { who_unblocks,  who_was_unblocks});
             return 'User was unblock';
         } catch (error) {
-            console.log('Wrong unblockUser', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -205,7 +214,7 @@ export class UserService {
                 .getRawMany()
             return blockUsers;
         } catch (error) {
-            console.log('Wrong with getBlockUser', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -219,8 +228,9 @@ export class UserService {
             const user2 = await this.userRepository.findOne({where: {id: userId2}});
             user2.qty_followers += incrementOrDecrement;
             await this.userRepository.save(user2);
+            logger.info('Operation with qty following or followers', { user1, user2 });
         } catch (error) {
-            console.log('Wrong with operationWithQtyFollowingOrFollowers', error);
+            logger.error('Error', { error });
         }
     }
 }

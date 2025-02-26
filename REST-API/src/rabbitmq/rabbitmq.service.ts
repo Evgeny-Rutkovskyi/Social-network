@@ -10,7 +10,7 @@ import { Repository } from 'typeorm';
 import { FileMsgDto, StoriesMsgDto } from './dto/msg.dto';
 import { checkVideoFile, longStories } from 'src/utils/FFmpeg.util';
 import { Profile } from 'src/entities/profile.entity';
-
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit {
@@ -66,21 +66,24 @@ export class RabbitMQService implements OnModuleInit {
         try{
             const msg: StoriesMsgDto = JSON.parse(msgQueue.content.toString());
             const stories = await this.storiesRepository.findOne({where: {id: msg.storiesId}});
-            if(stories && !stories.is_deleted){
+            if (stories && !stories.is_deleted) {
+                logger.info('Archive or delete stories', {msg, stories});
                 await this.archiveOrDeleteStories(msg.userId, stories);
             }else{
-                console.log('This stories was deleted before');
+                logger.info('This stories was deleted before', {stories});
             }
-        } catch (err){
-            console.log('something wrong with deleteStoriesByRabbit');
+        } catch (error){
+            logger.error('Error', error);
         }
     }
 
-    async sendMessageStory(dataObj: object){
+    async sendMessageStory(dataObj: object) {
+        logger.info('Send message story', {info: dataObj});
         this.channelStory.sendToQueue('Main', Buffer.from(JSON.stringify(dataObj)));
     }
 
-    async sendMessageValidFiles(dataObj: object){
+    async sendMessageValidFiles(dataObj: object) {
+        logger.info('Send message valid file', {info: dataObj});
         this.channelFiles.sendToQueue('Files', Buffer.from(JSON.stringify(dataObj)));
     }
 
@@ -95,7 +98,7 @@ export class RabbitMQService implements OnModuleInit {
                 .of(stories)
                 .delete()
                 .execute()
-            console.log('Stories saved in archive');
+            logger.info('Stories saved in archive', {stories});
         }else{
             await this.storiesRepository
                 .createQueryBuilder('stories')
@@ -103,17 +106,18 @@ export class RabbitMQService implements OnModuleInit {
                 .set({time_deleted_forever: new Date(), is_deleted: true})
                 .where('id = :idStories', {idStories: stories.id})
                 .execute();
-            console.log('Stories saved 24 hours, after will be deleted forever');
+            logger.info('Stories saved 24 hours, after will be deleted forever', {stories});
         }
     }
 
     async validFile(msgQueue){
         const msg: FileMsgDto = JSON.parse(msgQueue.content.toString()); 
+        logger.info('Valid file', { msg });
         const user = await this.userRepository.findOne({where: {id: msg.userId}});
         const fileRepository: any = (msg.type === 'stories') ? this.storiesRepository : this.profileRepository;
         const file = await fileRepository.findOne({where: {id: msg.fileId}})
         if(!file){
-            console.log('Not found file');
+            logger.error('Not found file');
             return;
         }
         const tempFileKey = file.path_key;
@@ -122,9 +126,11 @@ export class RabbitMQService implements OnModuleInit {
         const mimetype = objS3.Metadata['x-mimetype-file'];
         const originalNameFile = objS3.Metadata['x-file-name'];
         let resultResizeFile;
-        if(['image/jpeg', 'image/png', 'image/gif'].includes(mimetype)){
+        if (['image/jpeg', 'image/png', 'image/gif'].includes(mimetype)) {
+            logger.info('checkPhotoSize', {tempFileKey});
             resultResizeFile = await checkPhotoSize(bufferFile, msg.type, msg.subspecies);
-        }else if(['video/mp4', 'video/quicktime'].includes(mimetype)){
+        } else if (['video/mp4', 'video/quicktime'].includes(mimetype)) {
+            logger.info('checkVideoFile', {tempFileKey});
             const res = await checkVideoFile(bufferFile, msg.type, msg.subspecies);
             const duration: number = res[1];
             resultResizeFile = res[0];
@@ -160,6 +166,4 @@ export class RabbitMQService implements OnModuleInit {
             await this.sendMessageStory({userId: msg.userId, storiesId: msg.fileId});
         }
     }
-
-    
 }

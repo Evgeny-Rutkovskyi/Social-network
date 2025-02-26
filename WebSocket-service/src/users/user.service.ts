@@ -5,7 +5,7 @@ import { ChangeSettingsChat } from '../dto/changeSettingsChat.dto';
 import { ChatRepository } from 'src/repositories/chat.repository';
 import { MembersChatRepository } from 'src/repositories/membersChat.repository';
 import { ObjectId } from 'mongodb';
-
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class UserService {
@@ -26,7 +26,7 @@ export class UserService {
             }
             return chats;
         } catch (error) {
-            console.log('Something wrong with getAllChatsByUserId', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -45,9 +45,10 @@ export class UserService {
             await this.addMemberToChat(newChat._id, [Number(destinationId), userId], 
                 {start_messages: null, access: true}
             );
+            logger.info('Create private chat', { newChat });
             return newChat;
         } catch (error) {
-            console.log('Something wrong with createPrivateChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -59,7 +60,7 @@ export class UserService {
             );
             return deletedChat;
         } catch (error) {
-            console.log('Something wrong with deleteChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -73,7 +74,7 @@ export class UserService {
             await this.addMemberToChat(chat._id, members.members, settings);
             return 'Member was added';
         } catch (error) {
-            console.log('Something wrong with addMembersGroupChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -93,7 +94,7 @@ export class UserService {
             await this.addNewAdmin(chatId, who_added);
             return groupChat;
         } catch (error) {
-            console.log('Something wrong with conversionChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -110,9 +111,10 @@ export class UserService {
             const settings = {access: true, start_messages: null};
             await this.addMemberToChat(newGroupChat._id, members.members, settings);
             await this.addNewAdmin(String(newGroupChat._id), creator);
+            logger.info('Create group chat', { newGroupChat });
             return newGroupChat;
         } catch (error) {
-            console.log('Something wrong with createGroupChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -122,9 +124,10 @@ export class UserService {
                 {_id: chatId},
                 {$set: newSettings}
             );
+            logger.info('Change settings chat', { chat });
             return chat;
         } catch (error) {
-            console.log('Something wrong with changeSettingsChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -153,10 +156,11 @@ export class UserService {
 
                 if(typeof lastUser == 'number') await this.addNewAdmin(chatId, lastUser);
             }
-            await this.membersChatRepository.findOneAndDelete({_id: leave_user._id});
+            await this.membersChatRepository.findOneAndDelete({ _id: leave_user._id });
+            logger.info('Leave with chat', { leave_user });
             return 'Leave with chat successful';
         } catch (error) {
-            console.log('Something wrong with leaveGroupChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -169,7 +173,7 @@ export class UserService {
             await this.addMemberToChat(chat._id, members.members, settings)
             return 'Members successfully added';
         } catch (error) {
-            console.log('Something wrong with adminAddMemberToChat', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -182,7 +186,7 @@ export class UserService {
             );
             return addedUser;
         } catch (error) {
-            console.log('Something wrong with adminGrantPermissionUser', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -191,9 +195,10 @@ export class UserService {
             const deletedUser = await this.membersChatRepository.findOneAndDelete(
                 {user_id: Number(who_to_remove), chat: new ObjectId(chatId)}
             )
+            logger.info('Deleted user with chat', { deletedUser });
             return deletedUser;
         } catch (error) {
-            console.log('Something wrong with adminDeleteMember', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -205,7 +210,7 @@ export class UserService {
             );
             return updateUser;
         } catch (error) {
-            console.log('Something wrong with addNewAdmin', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -217,7 +222,7 @@ export class UserService {
             );
             return previousAdmin;
         } catch (error) {
-            console.log('Something wrong with takeOldAdmin', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -248,8 +253,7 @@ export class UserService {
             });
             return res.role === 'admin';
         } catch (error) {
-            console.log('Something wrong with GuardCheckAdmin', error);
-            
+            logger.error('Error', { error });
         }
     }
 }

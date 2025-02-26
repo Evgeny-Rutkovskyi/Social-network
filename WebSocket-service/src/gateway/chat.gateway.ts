@@ -10,6 +10,7 @@ import {
   ReplyMessage, ServerToClientEvents
 } from 'src/interfaces/chat.interface';
 import { ChatService } from './chat.service';
+import { logger } from 'src/logger.config';
 
 @WebSocketGateway()
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
@@ -59,11 +60,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
   }
 
   handleConnection(client: Socket) {
-    console.log(`Client ${client.id} connected`);
+    logger.info(`Client ${client.id} connected`);
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
-    console.log(`Client ${client} disconnected`);
+    logger.info(`Client ${client} disconnected`);
     client.rooms.forEach((room) => {
       if(room !== client.id) client.leave(room);
     })

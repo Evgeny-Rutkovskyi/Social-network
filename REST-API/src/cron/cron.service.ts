@@ -9,6 +9,7 @@ import { Stories } from 'src/entities/stories.entity';
 import { User } from 'src/entities/user.entity';
 import { S3Service } from 'src/upload-s3/s3.service';
 import { Repository } from 'typeorm';
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class CronService {
@@ -23,7 +24,8 @@ export class CronService {
         ) {}
 
     @Cron('0 0 0 * * * ')
-    async deletedAllCron(){
+    async deletedAllCron() {
+        logger.info('Cron, deletedAllCron start');
         await this.DeletedStoriesForever();
         await this.DeleteProfileForever();
         await this.DeleteCommentForever();
@@ -42,7 +44,7 @@ export class CronService {
                 {oneDayAgo, thirtyDayAgo})
             .getMany();
         await this.deleteFromBucket(overdueStories, this.storiesRepository);
-        console.log('Stories was deleted forever');
+        logger.info('Cron, Stories was deleted forever');
     }
 
     private async DeleteProfileForever(){
@@ -53,7 +55,7 @@ export class CronService {
             .where('deleted_at < :thirtyDayAgo OR time_ban < :thirtyDayAgo', {thirtyDayAgo})
             .getMany();
         await this.deleteFromBucket(overduePost, this.profileRepository);
-        console.log('END CRON');
+        logger.info('Cron, Profiles was deleted forever');
     }
 
     private async DeleteCommentForever(){
@@ -63,7 +65,7 @@ export class CronService {
             .delete()
             .where('time_ban < :thirtyDayAgo', {thirtyDayAgo})
             .execute()
-        console.log('Comment was delete forever');
+        logger.info('Cron, Comments was deleted forever');
     }
 
     private async DeleteUserForever(){
@@ -79,7 +81,7 @@ export class CronService {
             }
             await this.userRepository.delete(user.id);
         }
-        console.log('DeleteUsersForever');
+        logger.info('Cron, Users was deleted forever');
     }
 
     private async DeleteNotAcceptedFollow(){
@@ -89,7 +91,7 @@ export class CronService {
             .delete()
             .where('accepted_time < :oneDayAgo', {oneDayAgo})
             .execute()
-        console.log('Delete not accepted follows');
+        logger.info('Cron, Delete not accepted follows');
     }
 
     private async deleteFromBucket(overdueFiles: Array<Stories | Profile>, repository){

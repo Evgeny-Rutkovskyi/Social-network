@@ -12,6 +12,7 @@ import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
 import { CreateProfileDto, ProfileTextDto } from '../dto/createProfile.dto';
 import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
 import { S3Service } from 'src/upload-s3/s3.service';
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class ProfileUserService {
@@ -28,10 +29,11 @@ export class ProfileUserService {
     async create(file, userId: number, about_profile: CreateProfileDto){
         try {
             if(!file) throw new BadRequestException("Upload didn't happened");
-            const profile = await this.createProfile(file, userId, about_profile)
+            const profile = await this.createProfile(file, userId, about_profile);
+            logger.info('Create profile', { newProfile: profile });
             return profile;
         } catch (error) {
-            console.log('err', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -44,9 +46,10 @@ export class ProfileUserService {
                 const newProfile = await this.createProfile(file, userId, about_profile, groupIdentity);
                 successfulCreate.push(newProfile);
             }
+            logger.info('Create many profile', { newProfile: successfulCreate });
             return successfulCreate;
         } catch (error) {
-            console.log('err', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -79,7 +82,7 @@ export class ProfileUserService {
             }
             return newProfile;
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
 
@@ -100,7 +103,7 @@ export class ProfileUserService {
             const presignedUrl = await this.s3Service.generatePresignedUrl(post.path_key);
             return {post, presignedUrl};
         } catch (error) {
-            console.log('Something wrong with getStoriesById', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -118,9 +121,10 @@ export class ProfileUserService {
                 .update()
                 .set({deleted_with_profile: true})
                 .execute()
+            logger.info('Deleted profile', { deletedProfile: profile });
             return profile;
-        } catch (e) {
-            console.log(e, 'Something wrong with deleteProfile');
+        } catch (error) {
+            logger.error('Error', { error });
         }
     }
 
@@ -130,9 +134,10 @@ export class ProfileUserService {
             const deleteProfile = await this.profileRepository.find({where: {group_post: groupNameDate}})
             for(let profile of deleteProfile){
                 await this.deleteProfile(profile.id);
+                logger.info('Delete group profile', { deletedProfile: profile });
             }
         } catch (error) {
-            console.log('Something wrong with deleteGroupProfile');
+            logger.error('Error', { error });
         }
     }
 
@@ -142,9 +147,10 @@ export class ProfileUserService {
             if(!profile) throw new NotFoundException('Not found profile');
             profile.about_profile = aboutProfile.aboutProfile;
             await this.profileRepository.save(profile);
+            logger.info('Update info profile', { update: profile });
             return profile;
         } catch (error) {
-            console.log(error, 'something wrong with updateAboutProfile');
+            logger.error('Error', { error });
         }
     }
 
@@ -162,9 +168,10 @@ export class ProfileUserService {
                 .update()
                 .set({deleted_with_profile: false})
                 .execute()
+            logger.info('Restore profile', { restore: profile });
             return profile;
         } catch (error) {
-            console.log('Something wrong with restoreProfile...');
+            logger.error('Error', { error });
         }
     }
 
@@ -180,7 +187,7 @@ export class ProfileUserService {
             await this.profileRepository.save(profile);
             return newLike;
         } catch (error) {
-            console.log('Something wrong with likeProfile', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -197,7 +204,7 @@ export class ProfileUserService {
             }
             return 'Delete was success';
         } catch (error) {
-            console.log('Something wrong with deleteLikeProfile', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -211,18 +218,20 @@ export class ProfileUserService {
                 parentId: commentInfo.enclosedComment || null, comment: commentInfo.message
             });
             await this.commentsProfileRepository.save(newComment);
+            logger.info('Create comment', { newComment });
             return newComment;
         } catch (error) {
-            console.log('Something wrong with createComment', error);
+            logger.error('Error', { error });
         }
     }
 
     async deleteComment(idComment: number){
         try {
             await this.commentsProfileRepository.delete(idComment);
+            logger.info('Delete comment', { idComment });
             return 'Comment was delete';
         } catch (error) {
-            console.log('Something wrong with deleteComment', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -233,7 +242,7 @@ export class ProfileUserService {
             await this.commentsProfileRepository.save(comment);
             return comment;
         } catch (error) {
-            console.log('Something wrong with likeComment');
+            logger.error('Error', { error });
         }
     }
 
@@ -245,7 +254,7 @@ export class ProfileUserService {
             await this.commentsProfileRepository.save(comment);
             return comment;
         } catch (error) {
-            console.log('Something wrong with likeComment');
+            logger.error('Error', { error });
         }
     }
 }

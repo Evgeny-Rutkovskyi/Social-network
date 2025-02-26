@@ -10,6 +10,7 @@ import { PublicStoriesDto } from '../dto/publicStories.dto';
 import { FileMsgDto } from 'src/rabbitmq/dto/msg.dto';
 import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
 import { S3Service } from 'src/upload-s3/s3.service';
+import { logger } from 'src/logger.config';
 
 
 @Injectable()
@@ -40,9 +41,10 @@ export class ContentUserService {
                 subspecies: 'size',
             };
             await this.rabbitService.sendMessageValidFiles(msg);
+            logger.info('Create stories', { newStories });
             return {...msg};
-        } catch (err) {
-            console.log('Something happen with createStories', err);
+        } catch (error) {
+            logger.error('Error', { error });
         }
 
     }
@@ -52,9 +54,10 @@ export class ContentUserService {
             const stories = await this.storiesRepository.findOne({where: {id: idStories}});
             if(!stories) throw new NotFoundException('Not found stories');
             await this.rabbitService.archiveOrDeleteStories(idUser, stories);
+            logger.info('Delete stories', { deletedStoriesOrArchive: stories });
             return 'Stories was deleted';
-        } catch (err){
-            console.log('Something wrong with deleteStoriesById');
+        } catch (error){
+            logger.error('Error', { error });
         }
     }
 
@@ -64,9 +67,10 @@ export class ContentUserService {
             if(!stories) throw new BadRequestException('Not found stories');
             await this.s3Service.deleteFile(stories.path_key);
             await this.storiesRepository.delete(idStories);
+            logger.info('Delete archive stories', { deletedArchiveStories: stories });
             return 'Archive stories was deleted';
         } catch (error) {
-            console.log('Something wrong with delete Archive Stories');
+            logger.error('Error', { error });
         }
     }
 
@@ -79,9 +83,10 @@ export class ContentUserService {
                 .delete()
                 .where('is_deleted = :isDeleted', {isDeleted: true})
                 .execute()
+            logger.info('Delete all archive stories', { userId });
             return 'All archive stories was deleted'
         } catch (error) {
-            console.log('Something wrong with delete ALL Archive Stories', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -97,9 +102,10 @@ export class ContentUserService {
                 userId: idUser,
                 storiesId: idStories
             };
+            logger.info('Recreate stories', { recreateId: idStories });
             await this.rabbitService.sendMessageStory(msg);  
         } catch (error) {
-            console.log('Something wrong with recreateStories', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -138,7 +144,7 @@ export class ContentUserService {
             const presignedUrl = await this.s3Service.generatePresignedUrl(stories.path_key);
             return {stories, presignedUrl};
         } catch (error) {
-            console.log('Something wrong with getStoriesById', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -160,8 +166,8 @@ export class ContentUserService {
                 return 'Stories liked';
             }
             return 'This stories has liked for this user';
-        }catch (err) {
-            console.log('Something wrong with likeStoriesById', err);
+        }catch (error) {
+            logger.error('Error', { error });
         }
     }
 
@@ -181,8 +187,8 @@ export class ContentUserService {
                 return 'Like is hide';
             }
             return 'This user did not like';
-        }catch (err) {
-            console.log('Something wrong with likeStoriesById');
+        }catch (error) {
+            logger.error('Error', { error });
         }
     }
 }

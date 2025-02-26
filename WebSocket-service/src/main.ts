@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import {MicroserviceOptions, Transport} from '@nestjs/microservices'
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { logger } from './logger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,6 +22,6 @@ async function bootstrap() {
   )
 
   await app.startAllMicroservices();
-  await app.listen(port || 3001, () => console.log(`WebSocket-service run on port - ${port || 3001}`));
+  await app.listen(port || 3001, () => logger.info(`WebSocket-service run on port - ${port || 3001}`));
 }
 bootstrap();

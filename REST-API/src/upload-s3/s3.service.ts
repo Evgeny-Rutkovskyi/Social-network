@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { clientS3 } from '../utils/connectionS3.util';
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
+import { logger } from 'src/logger.config';
 
 @Injectable()
 export class S3Service {
@@ -19,7 +19,8 @@ export class S3Service {
             Bucket: this.bucketName,
             Key: key,
         })
-        const url = await getSignedUrl(this.clientForUrl, command, {expiresIn});
+        const url = await getSignedUrl(this.clientForUrl, command, { expiresIn });
+        logger.info('Generate presigned url', { url });
         return url;
     }
 
@@ -38,8 +39,9 @@ export class S3Service {
                 Key: key,
                 }),
             );
+            logger.info('Upload files to bucket', { key });
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
     
@@ -52,8 +54,9 @@ export class S3Service {
                     Key: key,
                 })
             );
+            logger.error('Delete file with s3', { key });
         } catch (error) {
-            console.log("Delete object with bucket didn't happen");
+            logger.error('Error', { error });
         }
     }
 

@@ -14,6 +14,7 @@ import { ChangeSettingsDto } from './dto/change-settings.dto';
 import { Profile } from 'src/entities/profile.entity';
 import { S3Service } from 'src/upload-s3/s3.service';
 import { Stories } from 'src/entities/stories.entity';
+import { logger } from 'src/logger.config';
 
 
 @Injectable()
@@ -42,9 +43,10 @@ export class AuthService {
             }
             const newUser = this.userRepository.create(userInfo);
             await this.userRepository.save(newUser);
+            logger.info('Create account', { newUser });
             return userInfo;
         } catch (e) {
-            console.log(e);
+            logger.error('Error', { error: e });
             throw new ConflictException('The user has already been created');
         }
     }
@@ -53,9 +55,10 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {email: userDto.email}, relations: ['token']});
             const token = await this.login(user, userDto);
+            logger.info('Login with email', { user });
             return token;
         } catch (error) {
-            console.log('Wrong loginWithEmail', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -63,9 +66,10 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {user_name: userDto.userName}, relations: ['token']});
             const token = await this.login(user, userDto);
+            logger.info('Login with user name', { user });
             return token;
         } catch (error) {
-            console.log('Wrong loginWithUserName', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -85,8 +89,8 @@ export class AuthService {
             }
             await this.userRepository.save(user);
             return newToken;
-        } catch (e) {
-            console.log(e);
+        } catch (error) {
+            logger.error('Error', { error });
             throw new NotFoundException('No user found');
         }
     }
@@ -98,8 +102,9 @@ export class AuthService {
             if(!user.settings) user.settings = this.settingsRepository.create();
             user.settings = {...user.settings, ...customSettings};
             await this.userRepository.save(user);
+            logger.info('Create or change settings', { user });
         } catch (error) {
-            console.log('Something wrong with createOrChangeSettings', error);
+            logger.error('Error', { error });
         }
     }
 
@@ -112,9 +117,10 @@ export class AuthService {
             if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             user.email = userData.newEmail;
             await this.userRepository.save(user);
+            logger.info('Update email', { user });
             return user;
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
 
@@ -126,9 +132,10 @@ export class AuthService {
             const hashPassword = await bcrypt.hash(userData.newPassword, 7);
             user.password = hashPassword;
             await this.userRepository.save(user);
+            logger.info('Update password', { user });
             return user;
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
 
@@ -139,9 +146,10 @@ export class AuthService {
             if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             user.user_name = userData.newUserName;
             await this.userRepository.save(user);
+            logger.info('Change name', { user });
             return user;
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
 
@@ -160,9 +168,10 @@ export class AuthService {
                 await this.settingsRepository.delete(user.settings);
             }
             await this.userRepository.delete(userId);
+            logger.info('Deleted account', { user });
             return user;
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
 
@@ -174,9 +183,10 @@ export class AuthService {
                     await this.s3Service.deleteFile(profile.profile.path_key);
                     await this.profileRepository.delete(profile.profile.id);
                 }
+                logger.info('Deleted profile', { profile });
             }
         } catch (error) {
-            console.log(error);
+            logger.error('Error', { error });
         }
     }
 
@@ -184,6 +194,7 @@ export class AuthService {
         for(let story of stories){
             await this.s3Service.deleteFile(story.path_key);
             await this.storiesRepository.delete(story);
+            logger.info('Deleted sotry', { story });
         }
     }
 
