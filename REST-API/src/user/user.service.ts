@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
-import { User } from 'src/entities/user.entity';
+import { FollowsAndBlock } from '../entities/followsAndBlock.entity';
+import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
-import { logger } from 'src/logger.config';
+import { logger } from '../logger.config';
 
 @Injectable()
 export class UserService {

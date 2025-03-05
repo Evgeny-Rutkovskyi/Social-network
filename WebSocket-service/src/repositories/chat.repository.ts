@@ -1,4 +1,4 @@
-import { ChatDocument } from "src/schemas/chat.schema";
+import { ChatDocument } from "../schemas/chat.schema";
 import { AbstractRepository } from "./abstract.repository";
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";

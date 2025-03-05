@@ -1,18 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/entities/user.entity';
+import { User } from '../../entities/user.entity';
 import { Repository } from 'typeorm';
-import { Profile } from 'src/entities/profile.entity';
-import { UserToProfile } from 'src/entities/userToProfile.entity';
-import { ProfileLikes } from 'src/entities/profileLikes.entity';
+import { Profile } from '../../entities/profile.entity';
+import { UserToProfile } from '../../entities/userToProfile.entity';
+import { ProfileLikes } from '../../entities/profileLikes.entity';
 import { CreateCommentDto } from '../dto/createComment.dto';
-import { CommentsProfile } from 'src/entities/commentsProfile.entity';
-import { FileMsgDto } from 'src/rabbitmq/dto/msg.dto';
-import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
+import { CommentsProfile } from '../../entities/commentsProfile.entity';
+import { FileMsgDto } from '../../rabbitmq/dto/msg.dto';
+import { RabbitMQService } from '../../rabbitmq/rabbitmq.service';
 import { CreateProfileDto, ProfileTextDto } from '../dto/createProfile.dto';
-import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
-import { S3Service } from 'src/upload-s3/s3.service';
-import { logger } from 'src/logger.config';
+import { FollowsAndBlock } from '../../entities/followsAndBlock.entity';
+import { S3Service } from '../../upload-s3/s3.service';
+import { logger } from '../../logger.config';
 
 @Injectable()
 export class ProfileUserService {
@@ -53,8 +53,7 @@ export class ProfileUserService {
         }
     }
 
-
-    private async createProfile(file, userId: number, about_profile: CreateProfileDto, groupIdentity: Date = null){
+    async createProfile(file, userId: number, about_profile: CreateProfileDto, groupIdentity: Date = null){
         try {
             const user = await this.userRepository.findOne({where: {id: userId}});
             if(!user) throw new BadRequestException('Not found user');
@@ -131,11 +130,14 @@ export class ProfileUserService {
     async deleteGroupProfile(groupName: string){
         try {
             const groupNameDate = new Date(groupName);
-            const deleteProfile = await this.profileRepository.find({where: {group_post: groupNameDate}})
-            for(let profile of deleteProfile){
+            const deleteProfiles = await this.profileRepository.find({
+                where: { group_post: groupNameDate }
+            });
+            for(let profile of deleteProfiles){
                 await this.deleteProfile(profile.id);
                 logger.info('Delete group profile', { deletedProfile: profile });
             }
+            return deleteProfiles;
         } catch (error) {
             logger.error('Error', { error });
         }

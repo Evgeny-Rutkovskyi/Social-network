@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { AccessToMessageDto, AddMemberDto, CreateGroupSettings } from '../dto/addMember.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { ChangeSettingsChat } from '../dto/changeSettingsChat.dto';
-import { ChatRepository } from 'src/repositories/chat.repository';
-import { MembersChatRepository } from 'src/repositories/membersChat.repository';
+import { ChatRepository } from '../repositories/chat.repository';
+import { MembersChatRepository } from '../repositories/membersChat.repository';
 import { ObjectId } from 'mongodb';
-import { logger } from 'src/logger.config';
+import { logger } from '../logger.config';
 
 @Injectable()
 export class UserService {
@@ -72,7 +72,7 @@ export class UserService {
             };
             if(_isAdmin) settings.access = true;
             await this.addMemberToChat(chat._id, members.members, settings);
-            return 'Member was added';
+            return chat;
         } catch (error) {
             logger.error('Error', { error });
         }

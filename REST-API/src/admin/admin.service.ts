@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CommentsProfile } from 'src/entities/commentsProfile.entity';
-import { Stories } from 'src/entities/stories.entity';
-import { User } from 'src/entities/user.entity';
+import { CommentsProfile } from '../entities/commentsProfile.entity';
+import { Stories } from '../entities/stories.entity';
+import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { Settings } from 'src/entities/settings.entity';
-import { Profile } from 'src/entities/profile.entity';
-import { Token } from 'src/entities/token.entity';
-import { logger } from 'src/logger.config';
+import { Settings } from '../entities/settings.entity';
+import { Profile } from '../entities/profile.entity';
+import { Token } from '../entities/token.entity';
+import { logger } from '../logger.config';
 
 @Injectable()
 export class AdminService {
@@ -195,7 +195,7 @@ export class AdminService {
         }
     }
 
-    private async queryBuilder(tableName: string, fieldUpdate: object, condition: string, id: number, repo){
+    async queryBuilder(tableName: string, fieldUpdate: object, condition: string, id: number, repo){
         await repo
             .createQueryBuilder(tableName)
             .update()

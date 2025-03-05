@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
-import { UserService } from "src/users/user.service";
+import { UserService } from "../users/user.service";
 
 
 

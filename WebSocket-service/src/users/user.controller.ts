@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { UserField } from 'src/custom-decorator/user.decorator';
+import { UserField } from '../custom-decorator/user.decorator';
 import { AccessToMessageDto, AddMemberDto, CreateGroupSettings } from '../dto/addMember.dto';
 import { ChangeSettingsChat } from '../dto/changeSettingsChat.dto';
-import { ChatAdminGuard } from 'src/guards/chatAdmin.guard';
+import { ChatAdminGuard } from '../guards/chatAdmin.guard';
 import { UserService } from './user.service';
-import { JwtAuthGuard } from 'src/temporarily-auth-module/jwt.guard';
+import { JwtAuthGuard } from '../temporarily-auth-module/jwt.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('chat')

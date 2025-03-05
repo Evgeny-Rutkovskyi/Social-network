@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ProfileUserService } from './profile-user.service';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { UserField } from 'src/custom-decorator/user.decorator';
-import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { UserField } from '../../custom-decorator/user.decorator';
+import { JwtAuthGuard } from '../../guards/jwt.guard';
 import { CreateCommentDto } from '../dto/createComment.dto';
-import { S3MulterConfig } from 'src/utils/connectionS3.util';
+import { S3MulterConfig } from '../../utils/connectionS3.util';
 import { CreateProfileDto, ProfileTextDto } from '../dto/createProfile.dto';
 
 
@@ -29,14 +29,14 @@ export class ProfileUserController {
     }
 
     @Get('/get/:id')
-    async getPost(@UserField('userId') userId: number, @Param('id') idPost: number,
-    @Query('owner_post') owner_post: number){
-        return await this.profileUserService.getPost(userId, idPost, owner_post);
+    async getPost(@UserField('userId') userId: number, @Param('id') idPost: string,
+    @Query('owner_post') owner_post: string){
+        return await this.profileUserService.getPost(userId, Number(idPost), Number(owner_post));
     }
 
     @Delete('/delete/:id')
-    async deleteProfile(@Param('id') idProfile: number){
-        return await this.profileUserService.deleteProfile(idProfile);
+    async deleteProfile(@Param('id') idProfile: string){
+        return await this.profileUserService.deleteProfile(Number(idProfile));
     }
 
     @Delete('/delete/group/post')
@@ -45,43 +45,43 @@ export class ProfileUserController {
     }
 
     @Patch('/update_about/:id')
-    async updateAboutProfile(@Param('id') idProfile: number, @Body() newAboutProfile: ProfileTextDto){
-        return await this.profileUserService.updateAboutProfile(idProfile, newAboutProfile);
+    async updateAboutProfile(@Param('id') idProfile: string, @Body() newAboutProfile: ProfileTextDto){
+        return await this.profileUserService.updateAboutProfile(Number(idProfile), newAboutProfile);
     }
 
     @Post('restore/:id')
-    async restoreProfileWithinTemporarilyEntity(@Param('id') idDeletedProfile: number){
-        return await this.profileUserService.restoreProfile(idDeletedProfile);
+    async restoreProfileWithinTemporarilyEntity(@Param('id') idDeletedProfile: string){
+        return await this.profileUserService.restoreProfile(Number(idDeletedProfile));
     }
 
     @Post('likeProfile/:id')
-    async likeProfile(@UserField('userId') userId: number, @Param('id') idProfile: number){
-        return await this.profileUserService.likeProfile(userId, idProfile);
+    async likeProfile(@UserField('userId') userId: number, @Param('id') idProfile: string){
+        return await this.profileUserService.likeProfile(userId, Number(idProfile));
     }
 
     @Delete('deleteLikeProfile/:id')
-    async deleteLikeProfile(@UserField('userId') userId: number, @Param('id') idProfile: number){
-        return await this.profileUserService.deleteLikeProfile(userId, idProfile);
+    async deleteLikeProfile(@UserField('userId') userId: number, @Param('id') idProfile: string){
+        return await this.profileUserService.deleteLikeProfile(userId, Number(idProfile));
     }
 
     @Post('createComment/:id')
-    async createComment(@UserField('userId') userId: number, @Param('id') idProfile: number,
+    async createComment(@UserField('userId') userId: number, @Param('id') idProfile: string,
     @Body() commentInfo: CreateCommentDto){
-        return await this.profileUserService.createComment(userId, idProfile, commentInfo);
+        return await this.profileUserService.createComment(userId, Number(idProfile), commentInfo);
     }
 
     @Delete('deleteComment/:id')
-    async deleteComment(@Param('id') idComment: number){
-        return await this.profileUserService.deleteComment(idComment);
+    async deleteComment(@Param('id') idComment: string){
+        return await this.profileUserService.deleteComment(Number(idComment));
     }
 
     @Post('likeComment/:id')
-    async likeComment(@Param('id') idComment: number){
-        return await this.profileUserService.likeComment(idComment);
+    async likeComment(@Param('id') idComment: string){
+        return await this.profileUserService.likeComment(Number(idComment));
     }
 
     @Delete('deleteLikeComment/:id')
-    async deleteLikeComment(@Param('id') idComment: number){
-        return await this.profileUserService.deleteLikeComment(idComment);
+    async deleteLikeComment(@Param('id') idComment: string){
+        return await this.profileUserService.deleteLikeComment(Number(idComment));
     }
 }

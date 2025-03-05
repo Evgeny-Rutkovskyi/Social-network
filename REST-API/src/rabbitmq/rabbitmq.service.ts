@@ -1,16 +1,16 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as amqp from 'amqplib'
-import { Stories } from 'src/entities/stories.entity';
-import { User } from 'src/entities/user.entity';
-import { UserStoriesLikes } from 'src/entities/userStoriesLikes.entity';
-import { S3Service } from 'src/upload-s3/s3.service';
-import { checkPhotoSize } from 'src/utils/sharp.util';
+import { Stories } from '../entities/stories.entity';
+import { User } from '../entities/user.entity';
+import { UserStoriesLikes } from '../entities/userStoriesLikes.entity';
+import { S3Service } from '../upload-s3/s3.service';
+import { checkPhotoSize } from '../utils/sharp.util';
 import { Repository } from 'typeorm';
 import { FileMsgDto, StoriesMsgDto } from './dto/msg.dto';
-import { checkVideoFile, longStories } from 'src/utils/FFmpeg.util';
-import { Profile } from 'src/entities/profile.entity';
-import { logger } from 'src/logger.config';
+import { checkVideoFile, longStories } from '../utils/FFmpeg.util';
+import { Profile } from '../entities/profile.entity';
+import { logger } from '../logger.config';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit {

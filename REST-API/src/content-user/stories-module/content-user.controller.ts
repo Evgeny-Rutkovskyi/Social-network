@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ContentUserService } from './content-user.service';
-import { JwtAuthGuard } from 'src/guards/jwt.guard';
-import { UserField } from 'src/custom-decorator/user.decorator';
+import { JwtAuthGuard } from '../../guards/jwt.guard';
+import { UserField } from '../../custom-decorator/user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { S3MulterConfig } from '../../utils/connectionS3.util';
 import { PublicStoriesDto } from '../dto/publicStories.dto';
@@ -19,15 +19,14 @@ export class ContentUserController {
         return await this.contentUserService.createStories(userId, file, only_friend);
     }
 
-    
     @Delete('/delete/stories/:id')
-    async deleteStoriesById(@UserField('userId') userId: number, @Param('id') idStories : number){
-        return await this.contentUserService.deleteStoriesById(userId, idStories);
+    async deleteStoriesById(@UserField('userId') userId: number, @Param('id') idStories : string){
+        return await this.contentUserService.deleteStoriesById(userId, Number(idStories));
     }
 
     @Delete('/delete/storiesInArchive/:id')
-    async deleteArchiveStories(@Param('id') idStories: number){
-        return await this.contentUserService.deleteArchiveStories(idStories);
+    async deleteArchiveStories(@Param('id') idStories: string){
+        return await this.contentUserService.deleteArchiveStories(Number(idStories));
     }
 
     @Delete('/delete/allStoriesInArchive')
@@ -36,25 +35,24 @@ export class ContentUserController {
     }
 
     @Post('/recreate/stories/:id')
-    async recreateStories(@UserField('userId') userId: number, @Param('id') idStories: number,
+    async recreateStories(@UserField('userId') userId: number, @Param('id') idStories: string,
         @Body() publicStories: PublicStoriesDto){
-        return await this.contentUserService.recreateStories(userId, idStories, publicStories);
+        return await this.contentUserService.recreateStories(userId, Number(idStories), publicStories);
     }
     
     @Get('/stories/:id')
-    async getStoriesById(@UserField('userId') userId: number, @Param('id') idStories: number,
-    @Query('owner_stories') idOwnerStories: number){
-        return await this.contentUserService.getStoriesById(userId, idStories, idOwnerStories);
+    async getStoriesById(@UserField('userId') userId: number, @Param('id') idStories: string,
+    @Query('owner_stories') idOwnerStories: string){
+        return await this.contentUserService.getStoriesById(userId, Number(idStories), Number(idOwnerStories));
     }
 
-    
     @Post('/like/stories/:id')
-    async likeStoriesById(@UserField('userId') userId: number, @Param('id') idStories: number){
-        return await this.contentUserService.likeStoriesById(userId, idStories);
+    async likeStoriesById(@UserField('userId') userId: number, @Param('id') idStories: string){
+        return await this.contentUserService.likeStoriesById(userId, Number(idStories));
     }
 
     @Post('/remove/like/:id')
-    async removeLikeOfStories(@UserField('userId') userId: number, @Param('id') idStories: number){
-        return await this.contentUserService.removeLikeOfStories(userId, idStories);
+    async removeLikeOfStories(@UserField('userId') userId: number, @Param('id') idStories: string){
+        return await this.contentUserService.removeLikeOfStories(userId, Number(idStories));
     }
 }

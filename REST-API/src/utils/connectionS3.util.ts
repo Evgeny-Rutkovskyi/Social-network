@@ -1,6 +1,6 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import * as multerS3 from 'multer-s3'
-import { fileFilter } from "src/utils/file-filters.util";
+import { fileFilter } from "./file-filters.util"
 import * as dotenv from 'dotenv';
 dotenv.config();
 

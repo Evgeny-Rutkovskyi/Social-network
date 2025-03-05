@@ -9,12 +9,12 @@ import { Repository } from 'typeorm';
 import { RegistrationUserDto } from './dto/registration.dto';
 import { changePassword } from './dto/registration.dto';
 import { Token } from '../entities/token.entity';
-import { Settings } from 'src/entities/settings.entity';
+import { Settings } from '../entities/settings.entity';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
-import { Profile } from 'src/entities/profile.entity';
-import { S3Service } from 'src/upload-s3/s3.service';
-import { Stories } from 'src/entities/stories.entity';
-import { logger } from 'src/logger.config';
+import { Profile } from '../entities/profile.entity';
+import { S3Service } from '../upload-s3/s3.service';
+import { Stories } from '../entities/stories.entity';
+import { logger } from '../logger.config';
 
 
 @Injectable()
@@ -47,7 +47,6 @@ export class AuthService {
             return userInfo;
         } catch (e) {
             logger.error('Error', { error: e });
-            throw new ConflictException('The user has already been created');
         }
     }
 
@@ -91,7 +90,6 @@ export class AuthService {
             return newToken;
         } catch (error) {
             logger.error('Error', { error });
-            throw new NotFoundException('No user found');
         }
     }
 
@@ -103,18 +101,16 @@ export class AuthService {
             user.settings = {...user.settings, ...customSettings};
             await this.userRepository.save(user);
             logger.info('Create or change settings', { user });
+            return user.settings;
         } catch (error) {
             logger.error('Error', { error });
         }
-    }
-
-    
+    }  
 
     async updateEmail(userData: newEmailDto){
         try {
             const user = await this.userRepository.findOne({where: {email: userData.email}});
             if(!user) throw new NotFoundException('User is not found, email is not correct');
-            if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             user.email = userData.newEmail;
             await this.userRepository.save(user);
             logger.info('Update email', { user });
@@ -128,7 +124,6 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {email: userData.email}});
             if(!user) throw new NotFoundException('User is not found, email is not correct');
-            if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             const hashPassword = await bcrypt.hash(userData.newPassword, 7);
             user.password = hashPassword;
             await this.userRepository.save(user);
@@ -143,7 +138,6 @@ export class AuthService {
         try {
             const user = await this.userRepository.findOne({where: {user_name: userData.userName}});
             if(!user) throw new NotFoundException('User is not found');
-            if(!this.comparePassword(userData.password, user.password)) throw new BadRequestException('Password is not correct');
             user.user_name = userData.newUserName;
             await this.userRepository.save(user);
             logger.info('Change name', { user });

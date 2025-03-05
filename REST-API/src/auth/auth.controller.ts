@@ -7,7 +7,7 @@ import { DtoUserInterceptor } from './interceptors/dtoInterceptor';
 import { changePassword } from './dto/registration.dto';
 import { JwtAuthGuard } from '../guards/jwt.guard';
 import { validateExceptionFactory } from './exception/validate-exception';
-import { UserField } from 'src/custom-decorator/user.decorator';
+import { UserField } from '../custom-decorator/user.decorator';
 import { ChangeSettingsDto } from './dto/change-settings.dto';
 
 @UsePipes(new ValidationPipe({exceptionFactory: validateExceptionFactory}))
@@ -22,8 +22,8 @@ export class AuthController {
     }
 
     @Post('/user/setting/:id')
-    async createOrChangeSettings(@Param('id') userId: number, @Body() customSettings: ChangeSettingsDto){
-        return await this.authService.createOrChangeSettings(userId, customSettings);
+    async createOrChangeSettings(@Param('id') userId: string, @Body() customSettings: ChangeSettingsDto){
+        return await this.authService.createOrChangeSettings(Number(userId), customSettings);
     }
 
     @Post('/login/email')

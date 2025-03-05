@@ -1,6 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Token } from "./token.entity";
-import { Stories } from "src/entities/stories.entity";
+import { Stories } from "./stories.entity";
 import { Settings } from "./settings.entity";
 import { UserStoriesLikes } from "./userStoriesLikes.entity";
 import { ProfileLikes } from "./profileLikes.entity";

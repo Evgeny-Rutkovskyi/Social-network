@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { AbstractRepository } from "./abstract.repository";
-import { MembersChatDocument } from "src/schemas/members-chat.schema";
+import { MembersChatDocument } from "../schemas/members-chat.schema";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 

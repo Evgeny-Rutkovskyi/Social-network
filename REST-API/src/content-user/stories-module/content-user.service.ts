@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Stories } from 'src/entities/stories.entity';
-import { User } from 'src/entities/user.entity';
+import { Stories } from '../../entities/stories.entity';
+import { User } from '../../entities/user.entity';
 import { Repository } from 'typeorm';
-import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
-import { UserStoriesLikes } from 'src/entities/userStoriesLikes.entity';
-import { StoriesView } from 'src/entities/storiesView.entity';
+import { RabbitMQService } from '../../rabbitmq/rabbitmq.service';
+import { UserStoriesLikes } from '../../entities/userStoriesLikes.entity';
+import { StoriesView } from '../../entities/storiesView.entity';
 import { PublicStoriesDto } from '../dto/publicStories.dto';
-import { FileMsgDto } from 'src/rabbitmq/dto/msg.dto';
-import { FollowsAndBlock } from 'src/entities/followsAndBlock.entity';
-import { S3Service } from 'src/upload-s3/s3.service';
-import { logger } from 'src/logger.config';
+import { FileMsgDto } from '../../rabbitmq/dto/msg.dto';
+import { FollowsAndBlock } from '../../entities/followsAndBlock.entity';
+import { S3Service } from '../../upload-s3/s3.service';
+import { logger } from '../../logger.config';
 
 
 @Injectable()
@@ -55,7 +55,7 @@ export class ContentUserService {
             if(!stories) throw new NotFoundException('Not found stories');
             await this.rabbitService.archiveOrDeleteStories(idUser, stories);
             logger.info('Delete stories', { deletedStoriesOrArchive: stories });
-            return 'Stories was deleted';
+            return stories;
         } catch (error){
             logger.error('Error', { error });
         }
@@ -68,7 +68,7 @@ export class ContentUserService {
             await this.s3Service.deleteFile(stories.path_key);
             await this.storiesRepository.delete(idStories);
             logger.info('Delete archive stories', { deletedArchiveStories: stories });
-            return 'Archive stories was deleted';
+            return stories;
         } catch (error) {
             logger.error('Error', { error });
         }
@@ -84,7 +84,7 @@ export class ContentUserService {
                 .where('is_deleted = :isDeleted', {isDeleted: true})
                 .execute()
             logger.info('Delete all archive stories', { userId });
-            return 'All archive stories was deleted'
+            return 'All archive stories was deleted';
         } catch (error) {
             logger.error('Error', { error });
         }
@@ -103,7 +103,8 @@ export class ContentUserService {
                 storiesId: idStories
             };
             logger.info('Recreate stories', { recreateId: idStories });
-            await this.rabbitService.sendMessageStory(msg);  
+            await this.rabbitService.sendMessageStory(msg);
+            return msg;
         } catch (error) {
             logger.error('Error', { error });
         }

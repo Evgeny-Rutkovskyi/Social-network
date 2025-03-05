@@ -5,7 +5,7 @@ export class ProfileTextDto{
 export class CreateProfileDto extends ProfileTextDto {
     subspecies: 'square' | 'portrait' | 'landscape';
 
-    joinProfile: string;
+    joinProfile: 'true' | 'false';
 
     involvedHumanId?: Array<number>;
 }
